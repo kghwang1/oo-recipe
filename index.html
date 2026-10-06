@@ -48,6 +48,13 @@ header{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;background:var
   padding:10px 4px;border-radius:10px;line-height:1.25;word-break:keep-all;min-height:48px}
 .grid.sub .gbtn{font-size:16px;text-align:left;padding:10px 12px}
 .gbtn.on{background:var(--green);color:var(--butter);border-color:var(--green)}
+.detail{background:var(--card);border:2px solid var(--green);border-radius:14px;padding:12px 16px 16px;margin-top:4px}
+.dhead{display:flex;align-items:center;flex-wrap:wrap;gap:6px 12px;margin-bottom:8px}
+.dname{font-weight:700;font-size:1.3em;line-height:1.25}
+.back{border:1.5px solid var(--green);background:transparent;color:var(--green);font:inherit;font-size:16px;font-weight:600;
+  border-radius:20px;padding:4px 12px;min-height:36px}
+:root[data-theme="dark"] .back{color:var(--butter);border-color:var(--butter)}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]) .back{color:var(--butter);border-color:var(--butter)}}
 .sec{font-size:1.1em;font-weight:700;color:var(--green);border-bottom:3px solid var(--butter);margin:26px 2px 10px;padding-bottom:4px}
 :root[data-theme="dark"] .sec{color:var(--butter)}
 @media (prefers-color-scheme: dark){:root:not([data-theme="light"]) .sec{color:var(--butter)}}
@@ -751,7 +758,11 @@ button:focus-visible,.chip:focus-visible{outline:3px solid var(--butter);outline
 
   function card(it, open) {
     const c = it.cat;
-    let h = `<div class="item${open ? ' open' : ''}"><button class="head" aria-expanded="${open}"><span class="name">${esc(it.name)}</span><span class="cat">${esc(c.name)}</span></button><div class="body">`;
+    return `<div class="item${open ? ' open' : ''}"><button class="head" aria-expanded="${open}"><span class="name">${esc(it.name)}</span><span class="cat">${esc(c.name)}</span></button><div class="body">` + bodyHtml(it) + `</div></div>`;
+  }
+  function bodyHtml(it) {
+    const c = it.cat;
+    let h = '';
     if (c.info) h += `<div class="info">${esc(c.info)}</div>`;
     c.notices.forEach(n => h += `<div class="notice">${esc(n)}</div>`);
     it.rows.forEach(r => {
@@ -763,7 +774,7 @@ button:focus-visible,.chip:focus-visible{outline:3px solid var(--butter);outline
       h += `</div>`;
     });
     it.notes.forEach(n => h += `<div class="note">※ ${esc(n)}</div>`);
-    return h + `</div></div>`;
+    return h;
   }
 
   // ---------- UI ----------
@@ -779,6 +790,7 @@ button:focus-visible,.chip:focus-visible{outline:3px solid var(--butter);outline
 
   function setMode(m) {
     mode = m;
+    if (m !== 'cat') selItem = null;
     try { localStorage.setItem('oozy-mode', m); } catch (e) {}
     document.querySelectorAll('.tab').forEach(t => t.classList.toggle('on', t.dataset.m === m));
     $sw.style.display = m === 'search' ? 'block' : 'none';
@@ -808,6 +820,15 @@ button:focus-visible,.chip:focus-visible{outline:3px solid var(--butter);outline
   // ----- 항목 -----
   function renderCat() {
     drawCats();
+    if (selCat && selItem) {
+      $cg.style.display = 'none'; $sg.style.display = 'none'; $count.textContent = '';
+      $list.innerHTML = `<div class="detail"><div class="dhead"><span class="dname">${esc(selItem.name)}</span>`
+        + `<button class="back" id="back">← ${esc(selCat.name)}</button></div>${bodyHtml(selItem)}</div>`;
+      document.getElementById('back').onclick = () => history.back();
+      fixPad(); window.scrollTo(0, 0);
+      return;
+    }
+    $cg.style.display = 'grid';
     if (!selCat) {
       $sg.style.display = 'none';
       $count.textContent = '';
@@ -816,19 +837,14 @@ button:focus-visible,.chip:focus-visible{outline:3px solid var(--butter);outline
     }
     $sg.style.display = 'grid';
     $sg.innerHTML = selCat.items.map((it, i) => `<button class="gbtn${it === selItem ? ' on' : ''}" data-i="${i}">${esc(it.name)}</button>`).join('');
-    if (!selItem) {
-      $count.textContent = '';
-      $list.innerHTML = `<div class="empty">${esc(selCat.name)} 메뉴 ${selCat.items.length}개 · 메뉴를 누르면 레시피가 나와요.</div>`;
-    } else {
-      $count.textContent = '';
-      $list.innerHTML = card(selItem, true);
-    }
+    $count.textContent = '';
+    $list.innerHTML = `<div class="empty">${esc(selCat.name)} 메뉴 ${selCat.items.length}개 · 메뉴를 누르면 레시피가 나와요.</div>`;
   }
   $sg.addEventListener('click', e => {
     const b = e.target.closest('.gbtn'); if (!b) return;
     selItem = selCat.items[+b.dataset.i];
+    history.pushState({ item: 1 }, '');
     renderCat();
-    goTop($list);
   });
 
   // ----- 전체 -----
@@ -877,6 +893,9 @@ button:focus-visible,.chip:focus-visible{outline:3px solid var(--butter);outline
   $q.addEventListener('keydown', e => { if (e.key === 'Enter') $q.blur(); });
   $clear.addEventListener('click', () => { $q.value = ''; renderSearch(); $q.focus(); });
   window.addEventListener('resize', fixPad);
+  window.addEventListener('popstate', () => {
+    if (mode === 'cat' && selItem) { selItem = null; renderCat(); goTop($sg); }
+  });
 
   // font size
   let fs = 22;
