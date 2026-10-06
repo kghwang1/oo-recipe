@@ -35,7 +35,22 @@ body{margin:0;background:var(--paper);color:var(--ink);
 header{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;background:var(--green);color:#fff;
   padding:12px 14px 12px;box-shadow:0 2px 0 var(--butter)}
 .top{display:flex;align-items:center;gap:8px;margin-bottom:10px}
-.brand{font-weight:700;font-size:17px;letter-spacing:.02em;flex:1}
+.brand{font-weight:700;font-size:17px;letter-spacing:.02em;flex:1;white-space:nowrap}
+.tabs{display:flex;gap:4px}
+.tab{background:transparent;color:#fff;border:1.5px solid #6E7E5A;border-radius:8px;font:inherit;font-size:16px;
+  font-weight:600;padding:6px 10px;min-height:40px}
+.tab.on{background:var(--butter);color:var(--green);border-color:var(--butter)}
+.top{flex-wrap:wrap}
+@media (max-width:420px){.brand{font-size:15px}.tab{padding:6px 8px;font-size:15px}.sz{min-width:38px;padding:6px 8px;font-size:15px}.top{gap:5px}}
+.grid{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin:4px 0 10px}
+.grid.sub{grid-template-columns:repeat(auto-fill,minmax(150px,1fr));padding-top:10px;border-top:2px solid var(--green)}
+.gbtn{border:1.5px solid var(--line);background:var(--card);color:var(--ink);font:inherit;font-size:15px;font-weight:600;
+  padding:10px 4px;border-radius:10px;line-height:1.25;word-break:keep-all;min-height:48px}
+.grid.sub .gbtn{font-size:16px;text-align:left;padding:10px 12px}
+.gbtn.on{background:var(--green);color:var(--butter);border-color:var(--green)}
+.sec{font-size:1.1em;font-weight:700;color:var(--green);border-bottom:3px solid var(--butter);margin:26px 2px 10px;padding-bottom:4px}
+:root[data-theme="dark"] .sec{color:var(--butter)}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]) .sec{color:var(--butter)}}
 .brand span{color:var(--butter)}
 .sz{background:var(--green2);color:#fff;border:0;border-radius:8px;font:inherit;font-size:16px;
   font-weight:600;padding:6px 12px;min-width:44px;min-height:40px}
@@ -87,18 +102,24 @@ button:focus-visible,.chip:focus-visible{outline:3px solid var(--butter);outline
 <body>
 <header>
   <div class="top">
-    <div class="brand">OOZY <span>레시피 찾기</span></div>
+    <div class="brand">OOZY <span>레시피찾기</span></div>
+    <div class="tabs" id="tabs">
+      <button class="tab" data-m="search">초성</button>
+      <button class="tab" data-m="cat">항목</button>
+      <button class="tab" data-m="all">전체</button>
+    </div>
     <button class="sz" id="dn" aria-label="글씨 작게">가−</button>
     <button class="sz" id="up" aria-label="글씨 크게">가+</button>
   </div>
-  <div class="searchwrap">
+  <div class="searchwrap" id="sw">
     <input id="q" type="search" inputmode="search" autocomplete="off" autocorrect="off" spellcheck="false"
       placeholder="초성 입력 (예: ㅇㅁㄹㅋ)" aria-label="메뉴 검색">
     <button id="clear" aria-label="지우기">×</button>
   </div>
 </header>
-<nav class="chips" id="chips"></nav>
 <main>
+  <div id="catgrid" class="grid"></div>
+  <div id="subgrid" class="grid sub"></div>
   <div id="count" class="count"></div>
   <div id="list"></div>
 </main>
@@ -250,19 +271,19 @@ button:focus-visible,.chip:focus-visible{outline:3px solid var(--butter);outline
 ## 리얼 블루베리라떼
 - ICE | 20oz 아이스컵 + 블루베리베이스 100g + 우유 200ml + 바스푼으로 혼합 + 얼음 평평 + 민트잎 1ea | 블루베리베이스 75g + 우유 250ml 투입
 ## 리얼딸기라떼
-- 20oz | 20oz 아이스컵 + 딸기베이스 ETC ㅁ아랫선(6래들/120g) + 얼음 평평 + 우유 가득(200ml) + 민트잎 1ea | 딸기베이스 100g + 우유 225ml 투입
+- 20oz | 20oz 아이스컵 + 딸기베이스 ETC 아랫선(6래들/120g) + 얼음 평평 + 우유 가득(200ml) + 민트잎 1ea | 딸기베이스 100g + 우유 225ml 투입
 - 32oz | 32oz 아이스컵 + (딸기베이스 200g + 우유 300ml = 섞어줌) + 얼음 평평 + 민트잎 1ea | 딸기베이스 180g + 우유 325ml 투입
 - 1.1L | 1.1L 보틀 + (딸기베이스 200g + 우유 300ml = 섞어줌) + 얼음 완성선까지 | 딸기베이스 180g + 우유 325ml 투입
 
 # 논커피 블렌더X | HOT 20oz / ICE 20oz
 ## 초코라떼
 - HOT | 20oz 종이컵 + (온수 50ml + 초코파우더 4래들 = 섞어줌) + 스팀우유(스팀전 225ml) | 초코파우더 2래들 투입
-- 20oz | 20oz 아이스컵 + 초코베이스 ETC ㅁ중간(125ml) + 얼음 평평 + 우유 가득(200ml) + 섞어줌 | 초코베이스 75ml 투입
+- 20oz | 20oz 아이스컵 + 초코베이스 ETC 중간선(125ml) + 얼음 평평 + 우유 가득(200ml) + 섞어줌 | 초코베이스 75ml 투입
 - 32oz | 32oz 아이스컵 + (초코베이스 215g(200ml) + 우유 300ml = 섞어줌) + 얼음 평평 | 초코베이스 150ml + 우유 325ml 투입
 - 1.1L | 1.1L 보틀 + (초코베이스 215g(200ml) + 우유 300ml = 섞어줌) + 얼음 완성선까지 | 초코베이스 150ml + 우유 325ml 투입
 ## 리얼초코라떼
 - HOT | 20oz 종이컵 + (온수 50ml + 초코파우더 4래들 = 섞어줌) + 스팀우유(스팀전 200ml) + 휘핑 + 초코드리즐 + 다크블라썸 1래들 | 초코파우더 2래들 투입
-- ICE | 20oz 아이스컵 + 초코베이스 ETC ㅁ중간(125ml) + 얼음 평평 + 우유 컵윗선(125ml) + 섞어줌 + 휘핑 + 초코드리즐 + 다크블라썸 1래들 | 초코베이스 75ml 투입
+- ICE | 20oz 아이스컵 + 초코베이스 ETC 중간선(125ml) + 얼음 평평 + 우유 컵윗선(125ml) + 섞어줌 + 휘핑 + 초코드리즐 + 다크블라썸 1래들 | 초코베이스 75ml 투입
 ## 녹차라떼
 - HOT | 20oz 종이컵 + 온수 50ml + 녹차파우더 2.5래들 + 스팀우유(스팀전 225ml) | 녹차파우더 2래들 투입
 - ICE | 20oz 아이스컵 + 녹차베이스 컵아랫선(75ml) + 얼음 평평 + 우유 가득(200ml) + 섞어줌 | 녹차베이스 50ml 투입
@@ -747,38 +768,88 @@ button:focus-visible,.chip:focus-visible{outline:3px solid var(--butter);outline
 
   // ---------- UI ----------
   const $q = document.getElementById('q'), $list = document.getElementById('list'),
-        $count = document.getElementById('count'), $chips = document.getElementById('chips'),
-        $clear = document.getElementById('clear');
-  let activeCat = null;
+        $count = document.getElementById('count'), $clear = document.getElementById('clear'),
+        $sw = document.getElementById('sw'), $cg = document.getElementById('catgrid'),
+        $sg = document.getElementById('subgrid'), $hdr = document.querySelector('header');
+  let mode = 'search', selCat = null, selItem = null;
+  try { const m = localStorage.getItem('oozy-mode'); if (['search','cat','all'].includes(m)) mode = m; } catch (e) {}
 
-  $chips.innerHTML = cats.map((c, i) => `<button class="chip" data-i="${i}">${esc(c.name)}</button>`).join('');
-  $chips.addEventListener('click', e => {
-    const b = e.target.closest('.chip'); if (!b) return;
-    const c = cats[+b.dataset.i];
-    activeCat = (activeCat === c) ? null : c;
-    $q.value = ''; render();
+  const fixPad = () => { document.documentElement.style.scrollPaddingTop = ($hdr.offsetHeight + 8) + 'px'; };
+  const goTop = el => { fixPad(); el.scrollIntoView({ block: 'start', behavior: 'smooth' }); };
+
+  function setMode(m) {
+    mode = m;
+    try { localStorage.setItem('oozy-mode', m); } catch (e) {}
+    document.querySelectorAll('.tab').forEach(t => t.classList.toggle('on', t.dataset.m === m));
+    $sw.style.display = m === 'search' ? 'block' : 'none';
+    $cg.style.display = m === 'search' ? 'none' : 'grid';
+    $sg.style.display = 'none';
+    $count.textContent = ''; $list.innerHTML = '';
+    if (m === 'search') renderSearch();
+    else if (m === 'cat') renderCat();
+    else renderAll();
+    fixPad(); window.scrollTo(0, 0);
+  }
+  document.getElementById('tabs').addEventListener('click', e => {
+    const t = e.target.closest('.tab'); if (t) setMode(t.dataset.m);
   });
 
-  function show(list, autoOpen, label) {
-    $count.textContent = label;
-    $list.innerHTML = list.map((it, i) => card(it, autoOpen || (i === 0 && !activeCat))).join('');
+  // 항목 / 전체 공통 분류 버튼
+  function drawCats() {
+    $cg.innerHTML = cats.map((c, i) => `<button class="gbtn${mode === 'cat' && c === selCat ? ' on' : ''}" data-i="${i}">${esc(c.name)}</button>`).join('');
   }
+  $cg.addEventListener('click', e => {
+    const b = e.target.closest('.gbtn'); if (!b) return;
+    const c = cats[+b.dataset.i];
+    if (mode === 'all') { const s = document.getElementById('sec' + b.dataset.i); if (s) goTop(s); return; }
+    selCat = c; selItem = null; renderCat();
+  });
 
-  function render() {
-    const raw = $q.value;
-    $clear.style.display = raw ? 'block' : 'none';
-    document.querySelectorAll('.chip').forEach((b, i) => b.classList.toggle('on', cats[i] === activeCat));
-    const q = prepQ(raw);
-    if (!q) {
-      if (activeCat) { show(activeCat.items, activeCat.items.length <= 2, `${activeCat.name} ${activeCat.items.length}개 · 이름을 누르면 레시피가 열려요`); }
-      else {
-        $count.textContent = '';
-        $list.innerHTML = `<div class="empty">메뉴 이름의 <b>초성</b>을 입력하세요.<br>예: <b>ㅇㅁㄹㅋ</b> → 아메리카노, <b>ㅂㄴㄹ</b> → 바닐라라떼<br>완성 글자와 섞어도 돼요 (<b>딥ㅋ</b>)<br><br>위의 분류를 누르면 전체 목록을 볼 수 있어요.</div>`;
-      }
+  // ----- 항목 -----
+  function renderCat() {
+    drawCats();
+    if (!selCat) {
+      $sg.style.display = 'none';
+      $count.textContent = '';
+      $list.innerHTML = '<div class="empty">위에서 <b>항목</b>을 고르면 메뉴 목록이 나와요.</div>';
       return;
     }
-    activeCat = null;
-    document.querySelectorAll('.chip').forEach(b => b.classList.remove('on'));
+    $sg.style.display = 'grid';
+    $sg.innerHTML = selCat.items.map((it, i) => `<button class="gbtn${it === selItem ? ' on' : ''}" data-i="${i}">${esc(it.name)}</button>`).join('');
+    if (!selItem) {
+      $count.textContent = '';
+      $list.innerHTML = `<div class="empty">${esc(selCat.name)} 메뉴 ${selCat.items.length}개 · 메뉴를 누르면 레시피가 나와요.</div>`;
+    } else {
+      $count.textContent = '';
+      $list.innerHTML = card(selItem, true);
+    }
+  }
+  $sg.addEventListener('click', e => {
+    const b = e.target.closest('.gbtn'); if (!b) return;
+    selItem = selCat.items[+b.dataset.i];
+    renderCat();
+    goTop($list);
+  });
+
+  // ----- 전체 -----
+  function renderAll() {
+    drawCats();
+    $count.textContent = `전체 ${items.length}개 · 위 항목을 누르면 해당 위치로 이동해요`;
+    $list.innerHTML = cats.map((c, i) =>
+      `<div class="sec" id="sec${i}">${esc(c.name)}</div>` + c.items.map(it => card(it, true)).join('')
+    ).join('');
+  }
+
+  // ----- 초성 -----
+  function renderSearch() {
+    const raw = $q.value;
+    $clear.style.display = raw ? 'block' : 'none';
+    const q = prepQ(raw);
+    if (!q) {
+      $count.textContent = '';
+      $list.innerHTML = `<div class="empty">메뉴 이름의 <b>초성</b>을 입력하세요.<br>예: <b>ㅇㅁㄹㅋ</b> → 아메리카노, <b>ㅂㄴㄹ</b> → 바닐라라떼<br>완성 글자와 섞어도 돼요 (<b>딥ㅋ</b>)</div>`;
+      return;
+    }
     const vs = variants(q), res = [];
     items.forEach((it, idx) => {
       let best = -1;
@@ -788,30 +859,33 @@ button:focus-visible,.chip:focus-visible{outline:3px solid var(--butter);outline
     res.sort((a, b) => a.s - b.s);
     if (!res.length) {
       $count.textContent = '';
-      $list.innerHTML = `<div class="empty">“${esc(raw)}”에 맞는 메뉴가 없어요.<br>초성을 하나 지우거나 분류에서 찾아보세요.</div>`;
+      $list.innerHTML = `<div class="empty">“${esc(raw)}”에 맞는 메뉴가 없어요.<br>초성을 하나 지우거나 <b>항목</b>에서 찾아보세요.</div>`;
       return;
     }
-    show(res.map(r => r.it), res.length <= 3, `${res.length}개 찾음${res.length > 3 ? ' · 이름을 누르면 레시피가 열려요' : ''}`);
+    const few = res.length <= 3;
+    $count.textContent = `${res.length}개 찾음${few ? '' : ' · 이름을 누르면 레시피가 열려요'}`;
+    $list.innerHTML = res.map((r, i) => card(r.it, few || i === 0)).join('');
   }
 
   $list.addEventListener('click', e => {
     const h = e.target.closest('.head'); if (!h) return;
     const el = h.parentElement, open = !el.classList.contains('open');
     el.classList.toggle('open', open); h.setAttribute('aria-expanded', open);
-    if (open) { $q.blur(); el.scrollIntoView({ block: 'start', behavior: 'smooth' }); }
+    if (open && mode === 'search') { $q.blur(); goTop(el); }
   });
-  $q.addEventListener('input', render);
+  $q.addEventListener('input', renderSearch);
   $q.addEventListener('keydown', e => { if (e.key === 'Enter') $q.blur(); });
-  $clear.addEventListener('click', () => { $q.value = ''; render(); $q.focus(); });
+  $clear.addEventListener('click', () => { $q.value = ''; renderSearch(); $q.focus(); });
+  window.addEventListener('resize', fixPad);
 
   // font size
   let fs = 22;
   try { const v = parseInt(localStorage.getItem('oozy-fs'), 10); if (v >= 16 && v <= 36) fs = v; } catch (e) {}
-  const applyFs = () => { document.documentElement.style.setProperty('--fs', fs + 'px'); try { localStorage.setItem('oozy-fs', fs); } catch (e) {} };
+  const applyFs = () => { document.documentElement.style.setProperty('--fs', fs + 'px'); fixPad(); try { localStorage.setItem('oozy-fs', fs); } catch (e) {} };
   document.getElementById('up').onclick = () => { fs = Math.min(36, fs + 2); applyFs(); };
   document.getElementById('dn').onclick = () => { fs = Math.max(16, fs - 2); applyFs(); };
   applyFs();
-  render();
+  setMode(mode);
 })();
 </script>
 </body>
