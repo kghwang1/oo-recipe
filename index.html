@@ -4,6 +4,8 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>우지커피 레시피 찾기</title>
+<meta name="app-version" content="2026-10-07.2">
+<meta http-equiv="Cache-Control" content="no-cache">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+KR:wght@400;600;700&display=swap" rel="stylesheet">
@@ -42,7 +44,7 @@ header{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;background:var
 .tab.on{background:var(--butter);color:var(--green);border-color:var(--butter)}
 .top{flex-wrap:wrap}
 @media (max-width:440px){.brand{font-size:14px}.tab{padding:5px 7px;font-size:14px;min-height:38px}.sz{min-width:34px;padding:4px 6px;font-size:14px;min-height:38px}.top{gap:4px}.tabs{gap:3px}}
-@media (max-width:390px){.brand b{display:none}}
+@media (max-width:430px){.brand b{display:none}}
 .mg-jump{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin:4px 0 6px}
 .mbox{background:var(--card);border:1.5px solid var(--line);border-radius:14px;padding:6px 16px 10px;margin-bottom:10px}
 .mname{font-weight:700;color:var(--etc);font-size:.9em;padding:8px 0 2px}
@@ -127,6 +129,13 @@ main{max-width:860px;margin:0 auto;padding:8px 12px 60px}
 .qr{flex:none;display:flex;flex-direction:column;align-items:center;gap:4px;margin:-6px 0 10px;
   text-decoration:none;color:var(--hot);font-size:14px;font-weight:700;line-height:1}
 .qr svg{width:84px;height:84px;display:block;border:2px solid var(--hot);border-radius:6px;padding:3px;background:#fff}
+.upd{position:fixed;left:12px;right:12px;bottom:calc(16px + env(safe-area-inset-bottom,0px));z-index:20;
+  display:flex;align-items:center;gap:10px;background:var(--hot);color:#fff;border-radius:14px;padding:12px 14px;
+  font-size:17px;font-weight:700;box-shadow:0 6px 20px rgba(0,0,0,.25);max-width:600px;margin:0 auto}
+.upd[hidden]{display:none}
+.upd span{flex:1}
+.upd button{flex:none;background:#fff;color:var(--hot);border:0;border-radius:10px;font:inherit;font-size:16px;padding:10px 14px;min-height:44px}
+.ver{font-size:13px;color:var(--muted);text-align:center;margin:24px 0 8px}
 .inote{color:var(--hot);font-weight:600;font-size:.8em}
 button:focus-visible,.chip:focus-visible{outline:3px solid var(--butter);outline-offset:2px}
 @media (prefers-reduced-motion:no-preference){.item.open .body{animation:fade .15s ease-out}}
@@ -134,6 +143,10 @@ button:focus-visible,.chip:focus-visible{outline:3px solid var(--butter);outline
 </style>
 </head>
 <body>
+<div id="upd" class="upd" role="status" hidden>
+  <span>새 레시피로 업데이트되었어요</span>
+  <button id="updBtn">지금 새로고침</button>
+</div>
 <header>
   <div class="top">
     <div class="brand"><b>OOZY </b><span>레시피찾기</span></div>
@@ -711,6 +724,23 @@ button:focus-visible,.chip:focus-visible{outline:3px solid var(--butter);outline
 
 <script>
 (function(){
+  const APP_VERSION = '2026-10-07.2';
+  // ---------- 새 버전 확인 ----------
+  let latest = null;
+  async function checkUpdate() {
+    if (!/^https?:/.test(location.protocol)) return;
+    try {
+      const r = await fetch(location.pathname + '?check=' + Date.now(), { cache: 'no-store' });
+      if (!r.ok) return;
+      const m = (await r.text()).match(/name="app-version" content="([^"]+)"/);
+      if (m && m[1] !== APP_VERSION) { latest = m[1]; document.getElementById('upd').hidden = false; }
+    } catch (e) {}
+  }
+  document.getElementById('updBtn').onclick = () => location.replace(location.pathname + '?v=' + encodeURIComponent(latest || Date.now()));
+  checkUpdate();
+  document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') checkUpdate(); });
+  setInterval(checkUpdate, 30 * 60 * 1000);
+
   // ---------- parse ----------
   const src = document.getElementById('data').textContent.split('\n');
   const cats = [], items = [];
@@ -866,6 +896,7 @@ button:focus-visible,.chip:focus-visible{outline:3px solid var(--butter);outline
       h += `<div class="mname" style="padding:6px 2px">${esc(g)}</div>` + list.map(([t, d, u]) =>
         `<a class="vbtn" href="${u}" target="_blank" rel="noopener"><span class="vplay">▶</span><span class="vtxt"><b>${esc(t)}</b><span>${esc(d)}</span></span></a>`).join('');
     });
+    h += `<div class="ver">앱 버전 ${APP_VERSION}</div>`;
     return h;
   }
 
