@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>우지커피 레시피 찾기</title>
-<meta name="app-version" content="2026-10-07.2">
+<meta name="app-version" content="2026-10-09.4">
 <meta http-equiv="Cache-Control" content="no-cache">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -112,6 +112,7 @@ main{max-width:860px;margin:0 auto;padding:8px 12px 60px}
 .tag{font-size:15px;font-weight:700;color:#fff;background:var(--etc);border-radius:6px;padding:3px 8px;
   align-self:start;margin-top:4px;white-space:nowrap}
 .tag.HOT{background:var(--hot)} .tag.ICE{background:var(--ice)}
+.tag.light{background:var(--green);color:var(--butter);border:1.5px solid var(--butter)}
 .lines{margin:0;padding:0;list-style:none}
 .lines li{padding:2px 0 2px 1.1em;text-indent:-1.1em}
 .lines li::before{content:"+";color:var(--muted);display:inline-block;width:1.1em;text-indent:0;font-weight:700}
@@ -593,7 +594,7 @@ button:focus-visible,.chip:focus-visible{outline:3px solid var(--butter);outline
 - 블렌더O | 우유 75g + 에버휩 200g + 슈가시럽 25g + 바닐라파우더 15g | 1번 버튼 1회
 ## 요거트크림B
 - 블렌더O | 우유 150g + 에버휩 150g + 요거트파우더 75g | 1번 버튼 1회
-## 큐브B (1판 6ea)
+## 큐브B (1판 분량 / 6ea)
 - 블렌더O | [블렌더 : 물 225ml + 아이스크림파우더 7.5래들(105g)] + 에스프레소 225ml 블렌더 믹싱 후 따로 혼합 | 1번 버튼 1회
 * 냉장샷 우선 사용 / 냉장샷 소진 시 에스프레소 투입
 ## 딸기B
@@ -624,7 +625,7 @@ button:focus-visible,.chip:focus-visible{outline:3px solid var(--butter);outline
 ## 더블치즈베이글
 - ① | 포장지 한쪽 면 완전 개봉
 - ② | ⟦r:1개 전자레인지 1분 30초⟧ (2개 2분 30초 / 3개 3분 30초 / 최대 3개까지)
-- ③ | 베이글 상단에 체다치즈 1장 토핑 | 포장박스(대) · 치폴레소스 추가 시 소스용기에 30g
+- ③ | 베이글 상단에 체다치즈 1장 토핑 | 포장박스(대) · 치폴레소스 추가 시 소스용기에 30g 제공
 ## 딥 미니버거 (1ea·2ea)
 - ① | 내열용기 바닥 물 50ml + 미니버거 1개
 - ② | ⟦r:1개 전자레인지 1분 30초 / 2개 2분⟧ (최대 2개까지)
@@ -641,7 +642,7 @@ button:focus-visible,.chip:focus-visible{outline:3px solid var(--butter);outline
 - ② | 시나몬슈가 코팅 | 2ea 파우치봉투 · ⟦r:4ea 포장박스(소)⟧
 ## 츄러스
 - ① | ⟦r:에어프라이어 190도 5분⟧ (예열X) (2~3개 5분 / 한 칸당 최대 3개)
-- ② | 시나몬슈가 코팅 | 파우치봉투 + 각대봉투 · 휘핑크림 추가 시 10oz 컵에 30g
+- ② | 시나몬슈가 코팅 | 파우치봉투 + 각대봉투 · 휘핑크림 추가 시 10oz 컵에 30g 담아 제공
 ## 클래식 프렌치토스트
 - ① | 냉동 토스트 2장을 꺼내 색이 연한 면 한쪽에 우유 10g 펴 바른 뒤 2장 겹치기
 - ② | 윗면(색이 진한 면)에 케이크시럽 5g + 황설탕 5g 펴 바르기
@@ -724,7 +725,7 @@ button:focus-visible,.chip:focus-visible{outline:3px solid var(--butter);outline
 
 <script>
 (function(){
-  const APP_VERSION = '2026-10-07.2';
+  const APP_VERSION = '2026-10-09.4';
   // ---------- 새 버전 확인 ----------
   let latest = null;
   async function checkUpdate() {
@@ -839,7 +840,7 @@ button:focus-visible,.chip:focus-visible{outline:3px solid var(--butter);outline
     if (it.video) h += `<div class="vtop"><div class="vtop-l">${top}</div><a class="qr" href="${it.video}" target="_blank" rel="noopener">${QR[it.video] || ''}<span>▶ 제조 영상</span></a></div>`;
     else h += top;
     it.rows.forEach(r => {
-      const cls = /^HOT$|^ICE$/.test(r.tag) ? r.tag : '';
+      const cls = /^HOT$|^ICE$/.test(r.tag) ? r.tag : 'light';
       h += `<div class="row"><span class="tag ${cls}">${esc(r.tag)}</span><ul class="lines">`;
       splitTop(r.recipe).forEach(p => h += `<li>${deco(p)}</li>`);
       h += `</ul>`;
