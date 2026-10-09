@@ -1,0 +1,442 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1">
+<title>우지커피 근무관리</title>
+<style>
+:root{--bg:#f5f2ee;--card:#fff;--ink:#231f1c;--sub:#7a726b;--line:#e5dfd8;--brand:#5b3a29;--ok:#1d8a4b;--warn:#d98200;--bad:#d32f2f;--gap:#fde3e3}
+*{box-sizing:border-box}
+body{margin:0;font-family:-apple-system,"Apple SD Gothic Neo","Malgun Gothic",sans-serif;background:var(--bg);color:var(--ink);-webkit-tap-highlight-color:transparent}
+button,input,select{font:inherit}
+button{cursor:pointer;border:0;border-radius:10px;padding:10px 14px;background:#ece6df;color:var(--ink)}
+button.pri{background:var(--brand);color:#fff}
+button.ok{background:var(--ok);color:#fff}
+button.bad{background:var(--bad);color:#fff}
+button.sm{padding:6px 10px;font-size:13px}
+input,select{width:100%;padding:10px;border:1px solid var(--line);border-radius:10px;background:#fff}
+label{display:block;font-size:13px;color:var(--sub);margin:8px 0 4px}
+.wrap{max-width:900px;margin:0 auto;padding:12px 16px 60px}
+.top{display:flex;align-items:center;justify-content:space-between;padding:10px 0}
+.top h1{font-size:18px;margin:0}
+.card{background:var(--card);border-radius:14px;padding:14px;margin:10px 0;box-shadow:0 1px 3px rgba(0,0,0,.05)}
+.row{display:flex;gap:8px;align-items:flex-end}.row>*{flex:1}
+.muted{color:var(--sub);font-size:13px}
+.big{font-size:26px;font-weight:700}
+.badge{display:inline-block;font-size:11px;padding:2px 7px;border-radius:99px;background:#eee;margin-left:4px}
+.badge.bad{background:#fde0e0;color:var(--bad)}.badge.warn{background:#fff1d6;color:#9a5c00}.badge.ok{background:#dcf3e5;color:var(--ok)}
+.punchbtn{width:100%;font-size:24px;font-weight:700;padding:22px;border-radius:16px;margin-top:10px}
+.list>div{display:flex;justify-content:space-between;align-items:center;gap:8px;padding:10px 0;border-bottom:1px solid var(--line)}
+.list>div:last-child{border:0}
+.tabs{display:flex;gap:6px;overflow-x:auto;padding-bottom:4px}
+.tabs button{white-space:nowrap}.tabs button.on{background:var(--brand);color:#fff}
+/* 로그인 */
+.login{max-width:320px;margin:8vh auto;text-align:center}
+.dots{display:flex;justify-content:center;gap:10px;margin:18px 0 22px;min-height:18px}
+.dots i{width:14px;height:14px;border-radius:50%;background:var(--brand)}
+.pad{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+.pad button{font-size:24px;padding:18px 0;background:#fff}
+/* 주간표 */
+.gridhead{display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap}
+.grid{display:grid;grid-template-columns:34px repeat(7,1fr);overflow-x:auto;margin-top:8px;min-width:0}
+.gcol{position:relative;border-left:1px solid var(--line)}
+.ghead{text-align:center;font-size:12px;padding:4px 0;border-bottom:1px solid var(--line);height:34px}
+.ghead.today{color:#fff;background:var(--brand);border-radius:8px 8px 0 0}
+.tlabel{position:absolute;right:4px;font-size:10px;color:var(--sub);transform:translateY(-6px)}
+.hline{position:absolute;left:0;right:0;border-top:1px dashed #eee}
+.closed{position:absolute;left:0;right:0;background:repeating-linear-gradient(45deg,#f1eeea,#f1eeea 4px,#e9e4de 4px,#e9e4de 8px)}
+.gapz{position:absolute;left:0;right:0;background:var(--gap)}
+.owner{position:absolute;left:0;right:0;background:#efe9fb}
+.blk{position:absolute;border-radius:6px;font-size:10px;line-height:1.2;padding:2px 3px;overflow:hidden;cursor:default}
+.blk.plan{border:1.5px solid;background:#fff}
+.blk.real{color:#fff}
+.blk.open{background-image:repeating-linear-gradient(45deg,rgba(255,255,255,.25) 0 6px,transparent 6px 12px)}
+.blk.missing{background:#fff!important;color:var(--bad);border:1.5px dashed var(--bad)}
+.legend{display:flex;flex-wrap:wrap;gap:10px;font-size:12px;margin-top:8px}
+.legend span{display:inline-flex;align-items:center;gap:4px}
+.legend i{width:12px;height:12px;border-radius:3px;display:inline-block}
+/* 모달/토스트 */
+.mbg{position:fixed;inset:0;background:rgba(0,0,0,.4);display:flex;align-items:center;justify-content:center;padding:16px;z-index:50}
+.modal{background:#fff;border-radius:16px;padding:18px;width:100%;max-width:400px;max-height:90vh;overflow:auto}
+.modal h3{margin:0 0 8px}
+.mbtns{display:flex;gap:8px;margin-top:16px}.mbtns button{flex:1;padding:14px}
+.warnlist{background:#fff6e5;border-radius:10px;padding:10px 12px;margin:8px 0;font-size:14px;line-height:1.5}
+#toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%);background:#222;color:#fff;padding:12px 18px;border-radius:12px;font-size:14px;z-index:60;max-width:90vw;display:none}
+.pay td,.pay th{padding:6px 4px;border-bottom:1px solid var(--line);font-size:13px;text-align:left}
+.pay{width:100%;border-collapse:collapse}
+#print{display:none}
+@media print{body>*:not(#print){display:none!important}#print{display:block;padding:20px;font-size:14px}#print table{width:100%;border-collapse:collapse}#print td,#print th{border:1px solid #999;padding:6px}}
+</style>
+</head>
+<body>
+<div id="app"></div>
+<div id="toast"></div>
+<div id="print"></div>
+<script>
+// ===== 설정 =====
+const CFG = {
+  API: 'https://oozy-work.kghwang1.workers.dev',   // ← 배포한 Worker 주소로 바꾸세요
+  H0: 6, H1: 22, PX: 32,                            // 주간표 표시 시간 범위, 1시간당 높이
+  OPEN: { wd: [7, 21], we: [9, 21] },               // 영업시간
+  OWNER: { wd: [[14, 16], [19, 21]], we: [] },      // 사장님 근무시간 (빈 시간 계산에서 제외)
+  IDLE_MIN: 3                                        // 이 시간(분) 동안 조작 없으면 자동 로그아웃
+};
+const DAY = 864e5, HOUR = 36e5, MIN = 6e4;
+const DOW = ['일','월','화','수','목','금','토'];
+let PIN = '', ME = null, WEEK = monday(new Date()), MODE = 'plan', DATA = null, TAB = 'grid', idleT = null;
+
+// ===== 유틸 =====
+const $ = s => document.querySelector(s);
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const pad = n => String(n).padStart(2, '0');
+const hhmm = t => { const d = new Date(t); return pad(d.getHours()) + ':' + pad(d.getMinutes()); };
+const ymd = d => { d = new Date(d); return d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate()); };
+const mdw = t => { const d = new Date(t); return `${d.getMonth() + 1}/${d.getDate()}(${DOW[d.getDay()]})`; };
+const fmtH = m => `${Math.floor(m / 60)}시간${m % 60 ? ' ' + Math.round(m % 60) + '분' : ''}`;
+const won = n => n.toLocaleString('ko-KR') + '원';
+const toMs = (date, time) => new Date(`${date}T${time}`).getTime();
+function monday(d) { d = new Date(d); d.setHours(0, 0, 0, 0); d.setDate(d.getDate() - ((d.getDay() + 6) % 7)); return d.getTime(); }
+function addDays(t, n) { const d = new Date(t); d.setDate(d.getDate() + n); return d.getTime(); }
+
+function toast(msg, ms = 2600) { const t = $('#toast'); t.textContent = msg; t.style.display = 'block'; clearTimeout(t._t); t._t = setTimeout(() => t.style.display = 'none', ms); }
+
+async function api(path, body) {
+  const r = await fetch(CFG.API + path, {
+    method: body ? 'POST' : 'GET',
+    headers: { 'Content-Type': 'application/json', 'X-Pin': PIN },
+    body: body ? JSON.stringify(body) : undefined
+  });
+  const j = await r.json().catch(() => ({ error: '서버 응답을 읽을 수 없습니다.' }));
+  if (r.status === 401 && ME) { logout(); throw new Error('다시 로그인해 주세요.'); }
+  if (!r.ok && !j.needConfirm) throw new Error(j.error || '오류가 발생했습니다.');
+  return j;
+}
+async function run(fn) { try { return await fn(); } catch (e) { toast(e.message, 3500); } }
+
+// 경고가 있으면 확인받고 다시 보냄
+async function withConfirm(path, body) {
+  let j = await api(path, body);
+  if (j.needConfirm) {
+    const ok = await modal(`<h3>확인해 주세요</h3><div class="warnlist">${j.warns.map(esc).join('<br>')}</div><div>그래도 진행할까요?</div>`, '진행');
+    if (!ok) return null;
+    j = await api(path, { ...body, confirm: true });
+  }
+  return j;
+}
+
+function modal(html, okText = '확인', read, cancelText = '취소') {
+  return new Promise(res => {
+    const bg = document.createElement('div'); bg.className = 'mbg';
+    bg.innerHTML = `<div class="modal">${html}<div class="mbtns">${cancelText ? `<button data-x>${cancelText}</button>` : ''}<button class="pri" data-ok>${okText}</button></div></div>`;
+    document.body.appendChild(bg);
+    const close = v => { bg.remove(); res(v); };
+    bg.querySelector('[data-ok]').onclick = () => { const v = read ? read() : true; if (v === false) return; close(v); };
+    const x = bg.querySelector('[data-x]'); if (x) x.onclick = () => close(null);
+  });
+}
+
+function getPos() {
+  return new Promise(res => {
+    if (!navigator.geolocation) return res({});
+    navigator.geolocation.getCurrentPosition(
+      p => res({ lat: p.coords.latitude, lng: p.coords.longitude, acc: p.coords.accuracy }),
+      () => res({}), { enableHighAccuracy: true, timeout: 8000, maximumAge: 30000 });
+  });
+}
+
+function resetIdle() { clearTimeout(idleT); if (ME) idleT = setTimeout(() => { logout(); toast('자동 로그아웃되었습니다.'); }, CFG.IDLE_MIN * MIN); }
+['click', 'touchstart', 'keydown'].forEach(e => document.addEventListener(e, resetIdle, { passive: true }));
+
+// ===== 로그인 =====
+function logout() { PIN = ''; ME = null; DATA = null; showLogin(); }
+function showLogin() {
+  let v = '';
+  $('#app').innerHTML = `<div class="login"><div class="big">☕ 우지커피 근무관리</div><div class="muted" style="margin-top:6px">PIN 번호를 입력하세요</div>
+    <div class="dots" id="dots"></div>
+    <div class="pad">${[1,2,3,4,5,6,7,8,9].map(n => `<button data-n="${n}">${n}</button>`).join('')}<button data-n="del">⌫</button><button data-n="0">0</button><button data-n="go" class="pri">확인</button></div></div>`;
+  const dots = () => $('#dots').innerHTML = '<i></i>'.repeat(v.length);
+  $('.pad').onclick = async e => {
+    const n = e.target.dataset.n; if (!n) return;
+    if (n === 'del') v = v.slice(0, -1);
+    else if (n === 'go') { if (v.length < 4) return toast('4자리 이상 입력하세요'); await login(v); v = ''; }
+    else if (v.length < 8) v += n;
+    dots();
+  };
+}
+async function login(v) {
+  PIN = v;
+  try { ME = await api('/login'); } catch (e) { PIN = ''; return toast(e.message); }
+  resetIdle(); WEEK = monday(new Date());
+  ME.role === 'admin' ? renderAdmin() : renderStaff();
+}
+
+// ===== 주간표 =====
+function gridSection(admin) {
+  return `<div class="card"><div class="gridhead">
+    <div class="row" style="flex:0 0 auto;align-items:center"><button class="sm" data-w="-1">◀</button><b id="wk" style="min-width:120px;text-align:center"></b><button class="sm" data-w="1">▶</button></div>
+    <div class="tabs" style="flex:0 0 auto"><button class="sm ${MODE==='plan'?'on':''}" data-m="plan">예정 스케줄</button><button class="sm ${MODE==='real'?'on':''}" data-m="real">실제 출퇴근</button></div></div>
+    <div id="grid"></div><div class="legend" id="legend"></div>
+    ${admin ? `<div class="muted" style="margin-top:6px">스케줄 칸을 누르면 수정/삭제할 수 있습니다.</div>` : ''}</div>`;
+}
+function bindGrid(admin) {
+  document.querySelectorAll('[data-w]').forEach(b => b.onclick = () => { WEEK = addDays(WEEK, 7 * +b.dataset.w); loadWeek(admin); });
+  document.querySelectorAll('[data-m]').forEach(b => b.onclick = () => { MODE = b.dataset.m; document.querySelectorAll('[data-m]').forEach(x => x.classList.toggle('on', x === b)); drawGrid(admin); });
+  loadWeek(admin);
+}
+async function loadWeek(admin) {
+  $('#wk').textContent = `${mdw(WEEK)} ~ ${mdw(addDays(WEEK, 6))}`;
+  const d = await run(() => api('/week?from=' + WEEK)); if (!d) return;
+  DATA = d; drawGrid(admin);
+}
+function drawGrid(admin) {
+  if (!DATA) return;
+  const { staff, schedules, punches } = DATA, now = Date.now();
+  const S = id => staff.find(s => s.id === id) || { name: '?', color: '#888' };
+  const items = MODE === 'plan'
+    ? schedules.map(s => ({ ...s, kind: 'plan' }))
+    : punches.map(p => ({ ...p, kind: 'real', end: p.end || (p.status === 'open' ? now : p.start + 30 * MIN) }));
+  const H = (CFG.H1 - CFG.H0) * CFG.PX, y = t => (t - CFG.H0) * CFG.PX;
+  let h = `<div><div class="ghead"></div><div style="position:relative;height:${H}px">`;
+  for (let i = CFG.H0; i <= CFG.H1; i++) h += `<div class="tlabel" style="top:${y(i)}px">${i}</div>`;
+  h += `</div></div>`;
+  const todayMs = new Date().setHours(0, 0, 0, 0);
+  for (let d = 0; d < 7; d++) {
+    const ds = addDays(WEEK, d), de = addDays(WEEK, d + 1), dow = new Date(ds).getDay(), we = dow === 0 || dow === 6;
+    const [o, c] = we ? CFG.OPEN.we : CFG.OPEN.wd;
+    h += `<div class="gcol"><div class="ghead ${ds === todayMs ? 'today' : ''}">${DOW[dow]}<br>${new Date(ds).getDate()}</div><div style="position:relative;height:${H}px">`;
+    h += `<div class="closed" style="top:0;height:${y(o)}px"></div><div class="closed" style="top:${y(c)}px;height:${H - y(c)}px"></div>`;
+    for (let i = CFG.H0 + 1; i < CFG.H1; i++) h += `<div class="hline" style="top:${y(i)}px"></div>`;
+    const owner = we ? CFG.OWNER.we : CFG.OWNER.wd;
+    owner.forEach(([a, b]) => h += `<div class="owner" style="top:${y(a)}px;height:${(b - a) * CFG.PX}px"></div>`);
+    const dayItems = items.filter(it => it.start < de && it.end > ds).sort((a, b) => a.start - b.start);
+    if (MODE === 'plan') { // 아무도 없는 시간 표시
+      for (let t = o; t < c; t += 0.5) {
+        const s = ds + t * HOUR, e = s + 30 * MIN;
+        const byOwner = owner.some(([a, b]) => t >= a && t < b);
+        const n = dayItems.filter(it => it.start < e && it.end > s).length;
+        if (!n && !byOwner) h += `<div class="gapz" style="top:${y(t)}px;height:${CFG.PX / 2}px"></div>`;
+      }
+    }
+    const lanes = []; dayItems.forEach(it => { let l = lanes.findIndex(end => end <= it.start); if (l < 0) { l = lanes.length; lanes.push(0); } lanes[l] = it.end; it.lane = l; });
+    const L = Math.max(1, lanes.length);
+    dayItems.forEach(it => {
+      const s = Math.max(it.start, ds), e = Math.min(it.end, de);
+      const top = y((s - ds) / HOUR), hgt = Math.max(14, (e - s) / HOUR * CFG.PX);
+      const st = S(it.staff_id), w = 100 / L;
+      const cls = it.kind === 'plan' ? 'plan' : 'real ' + (it.status || '');
+      const style = it.kind === 'plan' ? `border-color:${st.color};color:${st.color}` : `background:${st.color}`;
+      const label = it.status === 'missing' ? '퇴근누락' : it.status === 'open' ? '근무중' : `${hhmm(it.start)}-${hhmm(it.end)}`;
+      h += `<div class="blk ${cls}" data-id="${it.id}" data-k="${it.kind}" style="top:${top}px;height:${hgt - 2}px;left:calc(${it.lane * w}% + 1px);width:calc(${w}% - 2px);${style}"><b>${esc(st.name)}</b><br>${label}</div>`;
+    });
+    h += `</div></div>`;
+  }
+  $('#grid').innerHTML = `<div class="grid">${h}</div>`;
+  $('#legend').innerHTML = staff.filter(s => s.active).map(s => `<span><i style="background:${s.color}"></i>${esc(s.name)}</span>`).join('')
+    + (MODE === 'plan' ? `<span><i style="background:var(--gap)"></i>빈 시간</span><span><i style="background:#efe9fb"></i>사장님</span>` : '');
+  if (admin && MODE === 'plan') $('#grid').onclick = e => { const b = e.target.closest('.blk'); if (b) editSchedule(DATA.schedules.find(s => s.id === +b.dataset.id)); };
+  else $('#grid').onclick = null;
+}
+
+// ===== 직원 화면 =====
+async function renderStaff() {
+  const st = await run(() => api('/status')); if (!st) return;
+  const open = st.open, missing = st.recent.filter(p => p.status === 'missing');
+  $('#app').innerHTML = `<div class="wrap">
+    <div class="top"><h1>${esc(ME.name)}님</h1><button class="sm" id="out">로그아웃</button></div>
+    <div class="card"><div class="muted">현재 상태</div>
+      <div class="big" style="margin-top:4px">${open ? `<span style="color:var(--ok)">근무 중</span> <span class="muted">${hhmm(open.start)}~</span>` : '퇴근 상태'}</div>
+      <button class="punchbtn ${open ? 'bad' : 'ok'}" id="pbtn">${open ? '퇴근하기' : '출근하기'}</button></div>
+    ${missing.length ? `<div class="card" style="border:2px solid var(--bad)"><b style="color:var(--bad)">퇴근을 안 찍은 기록이 있습니다</b>
+      <div class="list">${missing.map(p => `<div><span>${mdw(p.start)} ${hhmm(p.start)}~ ?</span><button class="sm pri" data-rq="${p.id}">퇴근시간 요청</button></div>`).join('')}</div></div>` : ''}
+    ${st.requests.length ? `<div class="card"><b>승인 대기 중인 요청</b><div class="list">${st.requests.map(r => `<div><span>${mdw(r.start)} ${hhmm(r.start)}-${hhmm(r.end)}</span><span class="badge warn">대기</span></div>`).join('')}</div></div>` : ''}
+    ${gridSection(false)}
+    <div class="card"><div class="row" style="align-items:center"><b>내 최근 기록</b><button class="sm" id="addrq" style="flex:0 0 auto">누락 기록 추가 요청</button></div>
+      <div class="list">${st.recent.map(p => `<div><span>${mdw(p.start)} ${hhmm(p.start)}-${p.end ? hhmm(p.end) : '?'}
+        ${p.status === 'open' ? '<span class="badge ok">근무중</span>' : p.status === 'missing' ? '<span class="badge bad">퇴근누락</span>' : p.end ? `<span class="muted">${fmtH(Math.round((p.end - p.start) / MIN))}</span>` : ''}
+        ${p.edited ? '<span class="badge">수정됨</span>' : ''}</span>
+        ${p.status !== 'open' ? `<button class="sm" data-rq="${p.id}">수정 요청</button>` : ''}</div>`).join('') || '<div class="muted">기록이 없습니다.</div>'}</div></div>
+  </div>`;
+  $('#out').onclick = logout;
+  $('#pbtn').onclick = () => punch(open ? 'out' : 'in');
+  $('#addrq').onclick = () => requestEdit(null);
+  document.querySelectorAll('[data-rq]').forEach(b => b.onclick = () => requestEdit(st.recent.find(p => p.id === +b.dataset.rq)));
+  bindGrid(false);
+}
+async function punch(kind) {
+  const word = kind === 'in' ? '출근' : '퇴근';
+  const ok = await modal(`<div style="text-align:center;padding:10px 0"><div class="big">${esc(ME.name)}님</div><div style="font-size:18px;margin-top:8px">지금 <b>${word}</b> 맞습니까?</div><div class="muted" style="margin-top:6px">${hhmm(Date.now())}</div></div>`, word);
+  if (!ok) return;
+  toast('위치 확인 중...');
+  const pos = await getPos();
+  const r = await run(() => withConfirm('/punch/' + kind, pos));
+  if (r && r.ok) { toast(`${word} 완료 (${hhmm(r.at)})${r.minutes ? ' · ' + fmtH(r.minutes) : ''}`); renderStaff(); }
+}
+async function requestEdit(p) {
+  const v = await modal(`<h3>${p ? '기록 수정 요청' : '누락 기록 추가 요청'}</h3>
+    ${p ? `<div class="muted">현재: ${mdw(p.start)} ${hhmm(p.start)}-${p.end ? hhmm(p.end) : '?'}</div>` : ''}
+    <label>날짜</label><input type="date" id="rqD" value="${ymd(p ? p.start : Date.now())}">
+    <div class="row"><div><label>출근</label><input type="time" id="rqS" value="${p ? hhmm(p.start) : ''}"></div><div><label>퇴근</label><input type="time" id="rqE" value="${p && p.end ? hhmm(p.end) : ''}"></div></div>
+    <label>사유</label><input id="rqR" placeholder="예: 퇴근 버튼을 못 눌렀어요">`, '요청 보내기', () => {
+      const d = $('#rqD').value, s = $('#rqS').value, e = $('#rqE').value, r = $('#rqR').value.trim();
+      if (!d || !s || !e) { toast('날짜와 시간을 모두 입력하세요'); return false; }
+      if (!r) { toast('사유를 입력하세요'); return false; }
+      return { start: toMs(d, s), end: toMs(d, e), reason: r };
+    });
+  if (!v) return;
+  const r = await run(() => api('/request', { punch_id: p ? p.id : null, ...v }));
+  if (r) { toast('요청을 보냈습니다. 사장님 승인 후 반영됩니다.'); renderStaff(); }
+}
+
+// ===== 관리자 화면 =====
+let STAFF = [];
+async function renderAdmin() {
+  STAFF = await run(() => api('/admin/staff')) || [];
+  const reqs = await run(() => api('/admin/requests')) || [];
+  const tabs = [['grid', '주간표'], ['punch', '출퇴근 기록'], ['req', `수정요청${reqs.length ? ' ' + reqs.length : ''}`], ['pay', '급여'], ['staff', '직원']];
+  $('#app').innerHTML = `<div class="wrap"><div class="top"><h1>관리자</h1><button class="sm" id="out">로그아웃</button></div>
+    <div class="tabs">${tabs.map(([k, n]) => `<button class="${TAB === k ? 'on' : ''}" data-tab="${k}">${n}</button>`).join('')}</div><div id="body"></div></div>`;
+  $('#out').onclick = logout;
+  document.querySelectorAll('[data-tab]').forEach(b => b.onclick = () => { TAB = b.dataset.tab; renderAdmin(); });
+  ({ grid: tabGrid, punch: tabPunch, req: () => tabReq(reqs), pay: tabPay, staff: tabStaff })[TAB]();
+}
+const staffOpts = sel => STAFF.filter(s => s.active || s.id === sel).map(s => `<option value="${s.id}" ${s.id === sel ? 'selected' : ''}>${esc(s.name)}</option>`).join('');
+
+function tabGrid() {
+  $('#body').innerHTML = gridSection(true) + `<div class="card"><b>스케줄 추가</b>
+    <label>직원</label><select id="sS">${staffOpts()}</select>
+    <label>날짜</label><input type="date" id="sD" value="${ymd(Math.max(WEEK, Date.now()))}">
+    <div class="row"><div><label>시작</label><input type="time" id="sA" value="07:00"></div><div><label>종료</label><input type="time" id="sB" value="11:00"></div></div>
+    <div class="row" style="margin-top:12px"><button class="pri" id="sAdd">추가</button><button id="sCopy">이 주 → 다음 주로 복사</button></div></div>`;
+  bindGrid(true);
+  $('#sAdd').onclick = async () => {
+    if (!STAFF.length) return toast('직원 탭에서 직원을 먼저 등록하세요');
+    const d = $('#sD').value;
+    const r = await run(() => withConfirm('/admin/schedule', { staff_id: +$('#sS').value, start: toMs(d, $('#sA').value), end: toMs(d, $('#sB').value) }));
+    if (r && r.ok) { toast('추가했습니다'); WEEK = monday(new Date(d)); MODE = 'plan'; loadWeek(true); }
+  };
+  $('#sCopy').onclick = async () => {
+    if (!await modal(`<h3>스케줄 복사</h3>${mdw(WEEK)} 주의 스케줄을 다음 주로 복사합니다.<br><span class="muted">이미 같은 시간에 스케줄이 있는 사람은 건너뜁니다.</span>`, '복사')) return;
+    const r = await run(() => api('/admin/schedule/copy', { from: WEEK }));
+    if (r) { toast(`${r.copied}건 복사${r.skipped ? `, ${r.skipped}건 겹쳐서 건너뜀` : ''}`); WEEK = addDays(WEEK, 7); loadWeek(true); }
+  };
+}
+let EDIT_SID = null;
+async function editSchedule(s) {
+  if (!s) return;
+  EDIT_SID = s.id;
+  const v = await modal(`<h3>스케줄 수정</h3><label>직원</label><select id="eS">${staffOpts(s.staff_id)}</select>
+    <label>날짜</label><input type="date" id="eD" value="${ymd(s.start)}">
+    <div class="row"><div><label>시작</label><input type="time" id="eA" value="${hhmm(s.start)}"></div><div><label>종료</label><input type="time" id="eB" value="${hhmm(s.end)}"></div></div>
+    <button class="bad sm" id="eDel" style="margin-top:14px">이 스케줄 삭제</button>`, '저장', () => {
+      const d = $('#eD').value; return { id: s.id, staff_id: +$('#eS').value, start: toMs(d, $('#eA').value), end: toMs(d, $('#eB').value) };
+    });
+  if (!v) return;
+  const r = await run(() => withConfirm('/admin/schedule', v));
+  if (r && r.ok) { toast('저장했습니다'); loadWeek(true); }
+}
+// 스케줄 삭제 버튼 (모달 안)
+document.addEventListener('click', async e => {
+  if (e.target.id !== 'eDel') return;
+  const sid = EDIT_SID;
+  if (!await confirm('이 스케줄을 삭제할까요?')) return;
+  e.target.closest('.mbg').remove();
+  const r = await run(() => api('/admin/schedule/delete', { id: sid }));
+  if (r) { toast('삭제했습니다'); loadWeek(true); }
+});
+
+async function tabPunch() {
+  $('#body').innerHTML = `<div class="card"><div class="gridhead"><div class="row" style="flex:0 0 auto;align-items:center"><button class="sm" id="pw-">◀</button><b style="min-width:120px;text-align:center">${mdw(WEEK)} ~ ${mdw(addDays(WEEK, 6))}</b><button class="sm" id="pw+">▶</button></div>
+    <button class="sm pri" id="pAdd" style="flex:0 0 auto">기록 직접 추가</button></div><div class="list" id="plist" style="margin-top:8px"><div class="muted">불러오는 중...</div></div></div>`;
+  $('#pw-').onclick = () => { WEEK = addDays(WEEK, -7); tabPunch(); };
+  $('#pw+').onclick = () => { WEEK = addDays(WEEK, 7); tabPunch(); };
+  $('#pAdd').onclick = () => editPunch(null);
+  const rows = await run(() => api(`/admin/punches?from=${WEEK}&to=${addDays(WEEK, 7)}`)); if (!rows) return;
+  $('#plist').innerHTML = rows.map(p => `<div><div><b>${esc(p.name)}</b> ${mdw(p.start)} ${hhmm(p.start)}-${p.end ? hhmm(p.end) : '?'}
+      ${p.status === 'missing' ? '<span class="badge bad">퇴근누락</span>' : p.status === 'open' ? '<span class="badge ok">근무중</span>' : `<span class="muted">${fmtH(Math.round((p.end - p.start) / MIN))}</span>`}
+      ${p.edited ? '<span class="badge">수정됨</span>' : ''}${p.note ? `<div class="muted">⚠ ${esc(p.note)}</div>` : ''}</div>
+      <div style="display:flex;gap:4px;flex:0 0 auto"><button class="sm" data-pe="${p.id}">수정</button><button class="sm" data-pd="${p.id}">삭제</button></div></div>`).join('') || '<div class="muted">기록이 없습니다.</div>';
+  document.querySelectorAll('[data-pe]').forEach(b => b.onclick = () => editPunch(rows.find(p => p.id === +b.dataset.pe)));
+  document.querySelectorAll('[data-pd]').forEach(b => b.onclick = async () => {
+    const p = rows.find(x => x.id === +b.dataset.pd);
+    if (!await modal(`<h3>기록 삭제</h3>${esc(p.name)} ${mdw(p.start)} ${hhmm(p.start)}-${p.end ? hhmm(p.end) : '?'}<br>삭제할까요? (삭제 이력은 남습니다)`, '삭제')) return;
+    if (await run(() => api('/admin/punch/delete', { id: p.id }))) { toast('삭제했습니다'); tabPunch(); }
+  });
+}
+async function editPunch(p) {
+  const v = await modal(`<h3>${p ? '기록 수정' : '기록 추가'}</h3><label>직원</label><select id="kS">${staffOpts(p && p.staff_id)}</select>
+    <label>날짜</label><input type="date" id="kD" value="${ymd(p ? p.start : Date.now())}">
+    <div class="row"><div><label>출근</label><input type="time" id="kA" value="${p ? hhmm(p.start) : ''}"></div><div><label>퇴근</label><input type="time" id="kB" value="${p && p.end ? hhmm(p.end) : ''}"></div></div>`, '저장', () => {
+      const d = $('#kD').value, a = $('#kA').value, b = $('#kB').value;
+      if (!d || !a || !b) { toast('날짜와 시간을 모두 입력하세요'); return false; }
+      return { id: p ? p.id : null, staff_id: +$('#kS').value, start: toMs(d, a), end: toMs(d, b) };
+    });
+  if (!v) return;
+  if (await run(() => api('/admin/punch', v))) { toast('저장했습니다'); tabPunch(); }
+}
+
+function tabReq(reqs) {
+  $('#body').innerHTML = `<div class="card"><b>수정 요청</b><div class="list">${reqs.map(r => `<div><div><b>${esc(r.name)}</b> ${r.punch_id ? '기록 수정' : '<span class="badge warn">누락 추가</span>'}<br>
+      ${r.punch_id ? `<span class="muted">기존 ${mdw(r.old_start)} ${hhmm(r.old_start)}-${r.old_end ? hhmm(r.old_end) : '?'}</span><br>` : ''}
+      → <b>${mdw(r.start)} ${hhmm(r.start)}-${hhmm(r.end)}</b><div class="muted">사유: ${esc(r.reason)}</div></div>
+      <div style="display:flex;gap:4px;flex:0 0 auto"><button class="sm ok" data-ra="${r.id}">승인</button><button class="sm" data-rr="${r.id}">거절</button></div></div>`).join('') || '<div class="muted">대기 중인 요청이 없습니다.</div>'}</div></div>`;
+  const go = async (id, approve) => { if (await run(() => api('/admin/requests/resolve', { id, approve }))) { toast(approve ? '승인했습니다' : '거절했습니다'); renderAdmin(); } };
+  document.querySelectorAll('[data-ra]').forEach(b => b.onclick = () => go(+b.dataset.ra, true));
+  document.querySelectorAll('[data-rr]').forEach(b => b.onclick = () => go(+b.dataset.rr, false));
+}
+
+let PAYMONTH = ymd(Date.now()).slice(0, 7), PAY = null;
+async function tabPay() {
+  $('#body').innerHTML = `<div class="card"><div class="row"><div><label>급여 월</label><input type="month" id="pm" value="${PAYMONTH}"></div><button class="pri" id="pgo" style="flex:0 0 auto">계산</button></div></div><div id="paybody"></div>`;
+  $('#pgo').onclick = () => { PAYMONTH = $('#pm').value; tabPay(); };
+  PAY = await run(() => api('/admin/pay?month=' + PAYMONTH)); if (!PAY) return;
+  const sum = PAY.staff.reduce((a, s) => a + s.pay, 0);
+  $('#paybody').innerHTML = `<div class="card"><b>${PAY.month} 인건비 합계: ${won(sum)}</b><div class="muted">휴게시간 자동 차감: 4시간 이상 30분, 8시간 이상 1시간</div></div>` +
+    PAY.staff.map(s => `<div class="card" style="border-left:5px solid ${s.color}">
+      <div class="row" style="align-items:center"><div><b style="font-size:17px">${esc(s.name)}</b> <span class="muted">시급 ${won(s.wage)}</span></div><button class="sm" data-slip="${s.id}" style="flex:0 0 auto">명세서</button></div>
+      <table class="pay" style="margin-top:6px"><tr><th>근무일</th><th>총 시간</th><th>휴게</th><th>유급 시간</th><th>급여</th></tr>
+      <tr><td>${s.days}일</td><td>${fmtH(s.total)}</td><td>${fmtH(s.brk)}</td><td>${fmtH(s.paid)}</td><td><b>${won(s.pay)}</b></td></tr></table>
+      ${s.unresolved ? `<div class="warnlist" style="background:#fde3e3">⚠ 퇴근누락/근무중 기록 ${s.unresolved}건이 계산에서 빠졌습니다. 기록 탭에서 정리하세요.</div>` : ''}
+      ${s.overWeeks.length ? `<div class="warnlist">⚠ 주 15시간 이상인 주: ${s.overWeeks.map(w => `${mdw(w.week)}주 ${fmtH(w.minutes)}`).join(', ')}<br><span class="muted">주휴수당 대상입니다. 위 금액에 포함되지 않았습니다.</span></div>` : ''}
+    </div>`).join('');
+  document.querySelectorAll('[data-slip]').forEach(b => b.onclick = () => printSlip(PAY.staff.find(s => s.id === +b.dataset.slip)));
+}
+function printSlip(s) {
+  $('#print').innerHTML = `<h2 style="text-align:center">임금명세서</h2>
+    <p>사업장: 우지커피 광양용강점 &nbsp;&nbsp; 지급월: ${PAY.month} &nbsp;&nbsp; 성명: <b>${esc(s.name)}</b></p>
+    <table><tr><th>근로일수</th><th>총 근로시간</th><th>휴게시간</th><th>유급 근로시간</th><th>시급</th></tr>
+    <tr><td>${s.days}일</td><td>${fmtH(s.total)}</td><td>${fmtH(s.brk)}</td><td>${fmtH(s.paid)}</td><td>${won(s.wage)}</td></tr></table>
+    <h3>지급 내역</h3><table><tr><th>항목</th><th>계산 방법</th><th>금액</th></tr>
+    <tr><td>기본급</td><td>${(s.paid / 60).toFixed(2)}시간 × ${won(s.wage)}</td><td>${won(s.pay)}</td></tr>
+    <tr><td>공제</td><td></td><td></td></tr>
+    <tr><th colspan="2">실 지급액</th><th></th></tr></table>
+    <h3>근무 내역</h3><table><tr><th>날짜</th><th>출근</th><th>퇴근</th><th>근무</th><th>휴게</th></tr>
+    ${s.shifts.map(x => `<tr><td>${mdw(x.start)}</td><td>${hhmm(x.start)}</td><td>${hhmm(x.end)}</td><td>${fmtH(x.min)}</td><td>${x.brk ? x.brk + '분' : '-'}</td></tr>`).join('')}</table>
+    <p style="margin-top:30px;text-align:right">발행일: ${ymd(Date.now())}</p>`;
+  window.print();
+}
+
+async function tabStaff() {
+  const COLORS = ['#e4572e', '#1d8a4b', '#3a6ea5', '#9c27b0', '#d98200', '#00897b', '#c2185b', '#5d4037'];
+  $('#body').innerHTML = `<div class="card"><div class="row" style="align-items:center"><b>직원 목록</b><button class="sm pri" id="nAdd" style="flex:0 0 auto">직원 추가</button></div>
+    <div class="list">${STAFF.map(s => `<div><span><i style="display:inline-block;width:12px;height:12px;border-radius:3px;background:${s.color}"></i> <b>${esc(s.name)}</b> <span class="muted">PIN ${esc(s.pin)} · ${won(s.wage)}</span>${s.active ? '' : '<span class="badge">퇴사</span>'}</span>
+      <button class="sm" data-se="${s.id}">수정</button></div>`).join('') || '<div class="muted">등록된 직원이 없습니다.</div>'}</div></div>`;
+  const edit = async s => {
+    const col = s ? s.color : COLORS[STAFF.length % COLORS.length];
+    const v = await modal(`<h3>${s ? '직원 수정' : '직원 추가'}</h3>
+      <label>이름</label><input id="fN" value="${esc(s ? s.name : '')}">
+      <label>PIN (숫자 4~6자리, 직원마다 다르게)</label><input id="fP" inputmode="numeric" value="${esc(s ? s.pin : '')}">
+      <label>시급</label><input id="fW" type="number" value="${s ? s.wage : 10320}">
+      <label>색상</label><input id="fC" type="color" value="${col}" style="height:44px">
+      <label><input id="fA" type="checkbox" style="width:auto" ${!s || s.active ? 'checked' : ''}> 재직 중</label>`, '저장', () =>
+      ({ id: s ? s.id : null, name: $('#fN').value, pin: $('#fP').value, wage: +$('#fW').value, color: $('#fC').value, active: $('#fA').checked }));
+    if (!v) return;
+    if (await run(() => api('/admin/staff', v))) { toast('저장했습니다'); renderAdmin(); }
+  };
+  $('#nAdd').onclick = () => edit(null);
+  document.querySelectorAll('[data-se]').forEach(b => b.onclick = () => edit(STAFF.find(s => s.id === +b.dataset.se)));
+}
+
+showLogin();
+</script>
+</body>
+</html>
