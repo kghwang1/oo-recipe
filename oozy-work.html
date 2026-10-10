@@ -65,6 +65,24 @@ label{display:block;font-size:13px;color:var(--sub);margin:8px 0 4px}
 #toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%);background:#222;color:#fff;padding:12px 18px;border-radius:12px;font-size:14px;z-index:60;max-width:90vw;display:none}
 .pay td,.pay th{padding:6px 4px;border-bottom:1px solid var(--line);font-size:13px;text-align:left}
 .pay{width:100%;border-collapse:collapse}
+/* 근무표 */
+.pal{position:sticky;top:0;z-index:5;background:#fff;padding:8px 0 10px;display:flex;gap:6px;flex-wrap:wrap;border-bottom:1px solid var(--line);margin-bottom:8px}
+.pal button{padding:7px 11px;font-size:13px;border:2px solid transparent}
+.pal button.on{border-color:var(--ink);box-shadow:0 0 0 2px #fff inset}
+.tgrid{display:grid;grid-template-columns:40px repeat(7,minmax(0,1fr));gap:2px;user-select:none;-webkit-user-select:none}
+.tgrid.paint{touch-action:none}
+.tgrid .th{font-size:12px;text-align:center;padding:5px 0;background:#404040;color:#fff;border-radius:6px}
+.tgrid .tt{font-size:10px;color:var(--sub);display:flex;align-items:center;justify-content:flex-end;padding-right:3px}
+.tc{min-height:32px;background:#fff8f7;border:1px solid var(--line);border-radius:6px;display:flex;flex-direction:column;gap:1px;padding:1px;cursor:pointer}
+.tc.has{background:#fff}
+.tc.off{background:repeating-linear-gradient(45deg,#f1eeea,#f1eeea 4px,#e9e4de 4px,#e9e4de 8px);cursor:default}
+.chip{font-size:10px;line-height:1.35;border-radius:4px;color:#fff;text-align:center;white-space:nowrap;overflow:hidden;padding:1px 0}
+.chip.own{background:#cfc8e8;color:#3b315e}
+.chip.gone{opacity:.4;text-decoration:line-through}
+.sum td,.sum th{padding:6px 4px;border-bottom:1px solid var(--line);font-size:12px;text-align:right;white-space:nowrap}
+.sum td:first-child,.sum th:first-child{text-align:left}
+.sum{width:100%;border-collapse:collapse}
+.scroll-x{overflow-x:auto}
 #print{display:none}
 @media print{body>*:not(#print){display:none!important}#print{display:block;padding:20px;font-size:14px}#print table{width:100%;border-collapse:collapse}#print td,#print th{border:1px solid #999;padding:6px}}
 </style>
@@ -145,11 +163,18 @@ function getPos() {
   });
 }
 
-function resetIdle() { clearTimeout(idleT); if (ME) idleT = setTimeout(() => { logout(); toast('자동 로그아웃되었습니다.'); }, CFG.IDLE_MIN * MIN); }
+function resetIdle() { clearTimeout(idleT); if (ME) idleT = setTimeout(idleLogout, CFG.IDLE_MIN * MIN); }
+async function idleLogout() {
+  if (TPL_DIRTY && TPL) { try { await api('/admin/template', { grid: TPL }); } catch (e) {} } // 작성 중인 근무표는 자동 저장
+  TPL_DIRTY = false; logout(); toast('자동 로그아웃되었습니다.');
+}
 ['click', 'touchstart', 'keydown'].forEach(e => document.addEventListener(e, resetIdle, { passive: true }));
 
 // ===== 로그인 =====
-function logout() { PIN = ''; ME = null; DATA = null; showLogin(); }
+function logout() {
+  if (TPL_DIRTY && ME && ME.role === 'admin' && !confirm('근무표에 저장하지 않은 변경이 있습니다. 그래도 로그아웃할까요?')) return resetIdle();
+  PIN = ''; ME = null; DATA = null; TPL = null; TPL_DIRTY = false; BRUSH = null; TAB = 'grid'; showLogin();
+}
 function showLogin() {
   let v = '';
   $('#app').innerHTML = `<div class="login"><div class="big">☕ 우지커피 근무관리</div><div class="muted" style="margin-top:6px">PIN 번호를 입력하세요</div>
@@ -198,6 +223,13 @@ async function loadWeek(admin, pre) {
   DATA = d; drawGrid(admin);
 }
 const clearWeekCache = () => { for (const k in weekCache) delete weekCache[k]; };
+// 근무표의 사장님 칸("요일-시") → 그날의 [시작,끝] 구간들
+function ownerRanges(keys, di) {
+  const hs = keys.filter(k => k.startsWith(di + '-')).map(k => +k.split('-')[1]).sort((a, b) => a - b);
+  const out = [];
+  hs.forEach(h => { const last = out[out.length - 1]; if (last && last[1] === h) last[1] = h + 1; else out.push([h, h + 1]); });
+  return out;
+}
 function drawGrid(admin) {
   if (!DATA) return;
   const { staff, schedules, punches } = DATA, now = Date.now();
@@ -216,7 +248,7 @@ function drawGrid(admin) {
     h += `<div class="gcol"><div class="ghead ${ds === todayMs ? 'today' : ''}">${DOW[dow]}<br>${new Date(ds).getDate()}</div><div style="position:relative;height:${H}px">`;
     h += `<div class="closed" style="top:0;height:${y(o)}px"></div><div class="closed" style="top:${y(c)}px;height:${H - y(c)}px"></div>`;
     for (let i = CFG.H0 + 1; i < CFG.H1; i++) h += `<div class="hline" style="top:${y(i)}px"></div>`;
-    const owner = we ? CFG.OWNER.we : CFG.OWNER.wd;
+    const owner = DATA.owner ? ownerRanges(DATA.owner, (dow + 6) % 7) : (we ? CFG.OWNER.we : CFG.OWNER.wd);
     owner.forEach(([a, b]) => h += `<div class="owner" style="top:${y(a)}px;height:${(b - a) * CFG.PX}px"></div>`);
     const dayItems = items.filter(it => it.start < de && it.end > ds).sort((a, b) => a.start - b.start);
     if (MODE === 'plan') { // 아무도 없는 시간 표시
@@ -306,12 +338,12 @@ async function renderAdmin() {
   const [sf, rq] = await Promise.all([run(() => api('/admin/staff')), run(() => api('/admin/requests'))]);
   STAFF = sf || []; const reqs = rq || [];
   PREWEEK = wk;
-  const tabs = [['grid', '주간표'], ['punch', '출퇴근 기록'], ['req', `수정요청${reqs.length ? ' ' + reqs.length : ''}`], ['pay', '급여'], ['staff', '직원']];
+  const tabs = [['tpl', `근무표${TPL_DIRTY ? '*' : ''}`], ['grid', '주간표'], ['punch', '출퇴근 기록'], ['req', `수정요청${reqs.length ? ' ' + reqs.length : ''}`], ['pay', '급여'], ['staff', '직원']];
   $('#app').innerHTML = `<div class="wrap"><div class="top"><h1>관리자</h1><button class="sm" id="out">로그아웃</button></div>
     <div class="tabs">${tabs.map(([k, n]) => `<button class="${TAB === k ? 'on' : ''}" data-tab="${k}">${n}</button>`).join('')}</div><div id="body"></div></div>`;
   $('#out').onclick = logout;
   document.querySelectorAll('[data-tab]').forEach(b => b.onclick = () => { TAB = b.dataset.tab; renderAdmin(); });
-  ({ grid: tabGrid, punch: tabPunch, req: () => tabReq(reqs), pay: tabPay, staff: tabStaff })[TAB]();
+  ({ tpl: tabTpl, grid: tabGrid, punch: tabPunch, req: () => tabReq(reqs), pay: tabPay, staff: tabStaff })[TAB]();
 }
 const staffOpts = sel => STAFF.filter(s => s.active || s.id === sel).map(s => `<option value="${s.id}" ${s.id === sel ? 'selected' : ''}>${esc(s.name)}</option>`).join('');
 
@@ -357,6 +389,168 @@ document.addEventListener('click', async e => {
   const r = await run(() => api('/admin/schedule/delete', { id: sid }));
   if (r) { toast('삭제했습니다'); loadWeek(true); }
 });
+
+// ===== 근무표 (주간 템플릿) =====
+// TPL: { "요일-시": [직원id..] | ["O"] }  요일 0=월…6=일
+let TPL = null, TPL_DIRTY = false, BRUSH = null, PAINT = null;
+const TDAYS = ['월', '화', '수', '목', '금', '토', '일'];
+const openOf = d => d >= 5 ? CFG.OPEN.we : CFG.OPEN.wd;
+const isOff = (d, h) => { const [o, c] = openOf(d); return h < o || h >= c; };
+
+async function tabTpl() {
+  if (!TPL) {
+    $('#body').innerHTML = '<div class="card muted">불러오는 중...</div>';
+    const t = await run(() => api('/admin/template')); if (!t) return;
+    TPL = t.grid || {}; TPL_DIRTY = false;
+  }
+  const active = STAFF.filter(s => s.active);
+  const H0 = Math.min(CFG.OPEN.wd[0], CFG.OPEN.we[0]), H1 = Math.max(CFG.OPEN.wd[1], CFG.OPEN.we[1]);
+  let g = `<div></div>${TDAYS.map(d => `<div class="th">${d}</div>`).join('')}`;
+  for (let h = H0; h < H1; h++) {
+    g += `<div class="tt">${pad(h)}:00</div>`;
+    for (let d = 0; d < 7; d++) g += isOff(d, h) ? `<div class="tc off"></div>` : `<div class="tc" data-k="${d}-${h}"></div>`;
+  }
+  $('#body').innerHTML = `<div class="card">
+      <div class="row" style="align-items:center"><b style="font-size:16px">주간 근무표</b>
+        <span class="muted" style="text-align:right">${TPL_DIRTY ? '<b style="color:var(--bad)">저장 안 됨</b>' : '저장됨'}</span></div>
+      <div class="muted" style="margin:4px 0 6px">사람을 고른 뒤 칸을 누르거나 끌어서 칠하세요. 같은 사람으로 다시 누르면 지워집니다. 한 칸에 2명도 됩니다.</div>
+      <div class="pal" id="pal">
+        ${active.map(s => `<button data-b="${s.id}" style="background:${s.color};color:#fff">${esc(s.name)}</button>`).join('')}
+        <button data-b="O" style="background:#cfc8e8;color:#3b315e">사장</button>
+        <button data-b="X">지우개</button>
+        <button data-b="" class="sm">선택 해제</button>
+      </div>
+      ${active.length ? '' : '<div class="warnlist">직원 탭에서 직원을 먼저 등록하세요.</div>'}
+      <div class="tgrid" id="tg">${g}</div>
+      <div class="row" style="margin-top:12px"><button id="tSave">저장</button><button class="pri" id="tApply">주간표에 적용</button></div>
+      <div style="text-align:right;margin-top:8px"><button class="sm" id="tClear">사장 칸 빼고 모두 지우기</button></div>
+    </div>
+    <div class="card"><b>근무자별 주간 근무시간</b><div class="scroll-x" id="tsum"></div>
+      <div class="muted" style="margin-top:6px">유급 시간은 4시간 이상 연속 근무 시 휴게 30분을 뺀 시간입니다. 주 15시간 이상이면 주휴수당이 발생합니다.</div></div>`;
+  document.querySelectorAll('.tc[data-k]').forEach(drawCell);
+  markBrush();
+  $('#pal').onclick = e => { const b = e.target.closest('[data-b]'); if (!b) return; BRUSH = b.dataset.b || null; markBrush(); };
+  bindPaint();
+  $('#tSave').onclick = saveTpl;
+  $('#tApply').onclick = applyTpl;
+  $('#tClear').onclick = async () => {
+    if (!await modal('<h3>근무표 지우기</h3>사장님 칸을 빼고 모든 근무자를 지웁니다.', '지우기')) return;
+    for (const k in TPL) if (!TPL[k].includes('O')) delete TPL[k];
+    dirty(); tabTpl();
+  };
+  drawSummary();
+}
+function markBrush() {
+  document.querySelectorAll('#pal [data-b]').forEach(b => b.classList.toggle('on', (b.dataset.b || null) === BRUSH));
+  $('#tg').classList.toggle('paint', !!BRUSH); // 칠하기 중엔 화면이 끌려가지 않게
+}
+function drawCell(el) {
+  const v = TPL[el.dataset.k] || [];
+  el.classList.toggle('has', v.length > 0);
+  el.innerHTML = v.map(x => {
+    if (x === 'O') return '<div class="chip own">사장</div>';
+    const s = STAFF.find(s => s.id === x);
+    return s ? `<div class="chip ${s.active ? '' : 'gone'}" style="background:${s.color}">${esc(s.name.slice(0, 3))}</div>` : '';
+  }).join('');
+}
+function dirty() {
+  TPL_DIRTY = true;
+  const t = document.querySelector('[data-tab="tpl"]'); if (t) t.textContent = '근무표*';
+  const lab = document.querySelector('#body .row .muted'); if (lab) lab.innerHTML = '<b style="color:var(--bad)">저장 안 됨</b>';
+}
+function paintCell(k, mode) {
+  let v = (TPL[k] || []).slice();
+  if (BRUSH === 'X') v = [];
+  else if (BRUSH === 'O') v = mode === 'add' ? ['O'] : [];
+  else { const id = +BRUSH; v = v.filter(x => x !== 'O' && x !== id); if (mode === 'add') v.push(id); }
+  if (v.length) TPL[k] = v; else delete TPL[k];
+  drawCell(document.querySelector(`.tc[data-k="${k}"]`));
+  dirty();
+}
+function bindPaint() {
+  const tg = $('#tg');
+  const cellAt = e => { const el = document.elementFromPoint(e.clientX, e.clientY); return el && el.closest('.tc[data-k]'); };
+  tg.onpointerdown = e => {
+    if (!BRUSH) return;
+    const c = cellAt(e); if (!c) return;
+    e.preventDefault();
+    const v = TPL[c.dataset.k] || [];
+    const mode = BRUSH === 'X' ? 'del' : BRUSH === 'O' ? (v.includes('O') ? 'del' : 'add') : (v.includes(+BRUSH) ? 'del' : 'add');
+    PAINT = { mode, last: c.dataset.k };
+    paintCell(c.dataset.k, mode);
+  };
+  tg.onpointermove = e => {
+    if (!PAINT) return;
+    const c = cellAt(e); if (!c || c.dataset.k === PAINT.last) return;
+    PAINT.last = c.dataset.k; paintCell(c.dataset.k, PAINT.mode);
+  };
+  const end = () => { if (PAINT) { PAINT = null; drawSummary(); } };
+  tg.onpointerup = end; tg.onpointercancel = end; tg.onpointerleave = end;
+}
+// 근무표에서 사람별 요일별 연속 근무 구간 계산
+function tplShifts(id) {
+  const days = [];
+  for (let d = 0; d < 7; d++) {
+    const runs = []; let s = -1;
+    for (let h = 0; h <= 24; h++) {
+      const on = h < 24 && (TPL[d + '-' + h] || []).includes(id);
+      if (on && s < 0) s = h;
+      if (!on && s >= 0) { runs.push([s, h]); s = -1; }
+    }
+    days.push(runs);
+  }
+  return days;
+}
+function drawSummary() {
+  const ids = [...new Set(Object.values(TPL).flat().filter(x => x !== 'O'))];
+  const list = STAFF.filter(s => s.active || ids.includes(s.id));
+  const now = new Date(), y = now.getFullYear(), mo = now.getMonth();
+  const dim = new Date(y, mo + 1, 0).getDate();
+  const dayCount = [0, 0, 0, 0, 0, 0, 0];
+  for (let i = 1; i <= dim; i++) dayCount[(new Date(y, mo, i).getDay() + 6) % 7]++;
+  let rows = '', totPay = 0, totMon = 0;
+  for (const s of list) {
+    const days = tplShifts(s.id);
+    const hrs = days.map(r => r.reduce((a, [x, z]) => a + z - x, 0));
+    const paidDay = days.map(r => r.reduce((a, [x, z]) => { const m = (z - x) * 60; return a + m - (m >= 480 ? 60 : m >= 240 ? 30 : 0); }, 0));
+    const tot = hrs.reduce((a, b) => a + b, 0), paid = paidDay.reduce((a, b) => a + b, 0);
+    if (!tot && !s.active) continue;
+    const wk = Math.floor(paid * s.wage / 60), mon = Math.floor(paidDay.reduce((a, m, d) => a + m * dayCount[d], 0) * s.wage / 60);
+    totPay += wk; totMon += mon;
+    rows += `<tr><td><i style="display:inline-block;width:10px;height:10px;border-radius:3px;background:${s.color}"></i> ${esc(s.name)}</td>
+      ${hrs.map(h => `<td>${h || '<span class="muted">-</span>'}</td>`).join('')}
+      <td><b>${tot}</b></td><td>${fmtH(paid)}</td>
+      <td>${paid >= 900 ? '<b style="color:var(--bad)">주휴 발생</b>' : tot ? '<span style="color:var(--ok)">✓</span>' : ''}</td>
+      <td>${won(wk)}</td><td>${won(mon)}</td></tr>`;
+  }
+  // 요일별 빈 시간 (아무도 없는 영업시간)
+  const gaps = TDAYS.map((_, d) => { const [o, c] = openOf(d); let n = 0; for (let h = o; h < c; h++) if (!(TPL[d + '-' + h] || []).length) n++; return n; });
+  const ownerH = TDAYS.map((_, d) => Object.keys(TPL).filter(k => k.startsWith(d + '-') && TPL[k].includes('O')).length);
+  $('#tsum').innerHTML = `<table class="sum"><tr><th>이름</th>${TDAYS.map(d => `<th>${d}</th>`).join('')}<th>합계</th><th>유급</th><th>15h</th><th>주급</th><th>${mo + 1}월 예상</th></tr>
+    ${rows || `<tr><td colspan="14" class="muted" style="text-align:left">아직 칠한 칸이 없습니다.</td></tr>`}
+    <tr><td>사장</td>${ownerH.map(h => `<td>${h || '-'}</td>`).join('')}<td>${ownerH.reduce((a, b) => a + b, 0)}</td><td colspan="5"></td></tr>
+    <tr><td><b>빈 시간</b></td>${gaps.map(n => `<td>${n ? `<b style="color:var(--bad)">${n}</b>` : '<span style="color:var(--ok)">0</span>'}</td>`).join('')}<td>${gaps.reduce((a, b) => a + b, 0)}</td><td colspan="5"></td></tr>
+    <tr><td><b>알바비 합계</b></td><td colspan="10"></td><td></td><td><b>${won(totPay)}</b></td><td><b>${won(totMon)}</b></td></tr></table>`;
+}
+async function saveTpl() {
+  const r = await run(() => api('/admin/template', { grid: TPL }));
+  if (r) { TPL_DIRTY = false; toast('근무표를 저장했습니다'); tabTpl(); document.querySelector('[data-tab="tpl"]').textContent = '근무표'; }
+}
+async function applyTpl() {
+  const v = await modal(`<h3>주간표에 적용</h3>
+    <label>시작 주 (그 주 월요일부터)</label><input type="date" id="aD" value="${ymd(monday(Date.now()))}">
+    <label>기간</label><select id="aW"><option value="1">1주</option><option value="2">2주</option><option value="4" selected>4주</option><option value="8">8주</option></select>
+    <div class="warnlist">선택한 주의 <b>기존 예정 스케줄은 모두 지워지고</b> 근무표대로 다시 만들어집니다.<br><span class="muted">실제 출퇴근 기록과 급여는 바뀌지 않습니다. 사장 칸은 스케줄로 만들지 않습니다.</span></div>`, '적용', () => {
+      const d = $('#aD').value; if (!d) { toast('시작 주를 고르세요'); return false; }
+      return { from: monday(new Date(d + 'T00:00')), weeks: +$('#aW').value };
+    });
+  if (!v) return;
+  const r = await run(() => api('/admin/template', { grid: TPL, apply: v }));
+  if (!r) return;
+  TPL_DIRTY = false; clearWeekCache();
+  toast(`${r.weeks}주에 스케줄 ${r.count}개를 만들었습니다`);
+  WEEK = monday(v.from); MODE = 'plan'; TAB = 'grid'; renderAdmin();
+}
 
 async function tabPunch() {
   $('#body').innerHTML = `<div class="card"><div class="gridhead"><div class="row" style="flex:0 0 auto;align-items:center"><button class="sm" id="pw-">◀</button><b style="min-width:120px;text-align:center">${mdw(WEEK)} ~ ${mdw(addDays(WEEK, 6))}</b><button class="sm" id="pw+">▶</button></div>
