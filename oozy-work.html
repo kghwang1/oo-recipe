@@ -26,10 +26,15 @@ label{display:block;font-size:13px;color:var(--sub);margin:8px 0 4px}
 .badge{display:inline-block;font-size:11px;padding:2px 7px;border-radius:99px;background:#eee;margin-left:4px}
 .badge.bad{background:#fde0e0;color:var(--bad)}.badge.warn{background:#fff1d6;color:#9a5c00}.badge.ok{background:#dcf3e5;color:var(--ok)}
 .punchbtn{width:100%;font-size:24px;font-weight:700;padding:22px;border-radius:16px;margin-top:10px}
+.outbtns{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:10px}
+.outbtns button{font-size:17px;font-weight:700;padding:16px 8px;border-radius:14px}
+.outbtns .go{grid-column:1/-1;font-size:22px;padding:20px}
+button.warn{background:var(--warn);color:#fff}
 .list>div{display:flex;justify-content:space-between;align-items:center;gap:8px;padding:10px 0;border-bottom:1px solid var(--line)}
 .list>div:last-child{border:0}
 .tabs{display:flex;gap:6px;overflow-x:auto;padding-bottom:4px}
 .tabs button{white-space:nowrap}.tabs button.on{background:var(--brand);color:#fff}
+.admintabs button{font-size:14.4px;padding:9px 12.6px}
 /* 로그인 */
 .login{max-width:320px;margin:8vh auto;text-align:center}
 .dots{display:flex;justify-content:center;gap:10px;margin:18px 0 22px;min-height:18px}
@@ -43,16 +48,19 @@ label{display:block;font-size:13px;color:var(--sub);margin:8px 0 4px}
 .gcol{position:relative;border-left:1px solid var(--line)}
 .ghead{text-align:center;font-size:12px;padding:4px 0;border-bottom:1px solid var(--line);height:34px}
 .ghead.today{color:#fff;background:var(--brand);border-radius:8px 8px 0 0}
-.tlabel{position:absolute;right:4px;font-size:10px;color:var(--sub);transform:translateY(-6px)}
+.tlabel{position:absolute;right:4px;font-size:11px;color:var(--sub);transform:translateY(-6px)}
 .hline{position:absolute;left:0;right:0;border-top:1px dashed #eee}
 .closed{position:absolute;left:0;right:0;background:repeating-linear-gradient(45deg,#f1eeea,#f1eeea 4px,#e9e4de 4px,#e9e4de 8px)}
 .gapz{position:absolute;left:0;right:0;background:var(--gap)}
 .owner{position:absolute;left:0;right:0;background:#efe9fb}
 .blk{position:absolute;border-radius:6px;font-size:10px;line-height:1.2;padding:2px 3px;overflow:hidden;cursor:default}
-.blk.plan{border:1.5px solid;background:#fff}
-.blk.real{color:#fff}
-.blk.open{background-image:repeating-linear-gradient(45deg,rgba(255,255,255,.25) 0 6px,transparent 6px 12px)}
-.blk.missing{background:#fff!important;color:var(--bad);border:1.5px dashed var(--bad)}
+.blk.plan{border:1.5px solid;background:transparent;z-index:2;padding:0}
+.blk.real{z-index:1;padding:0;border-left:3px solid}
+.blk.open{background-image:repeating-linear-gradient(45deg,rgba(255,255,255,.55) 0 5px,transparent 5px 10px)}
+.blk.missing{background:#fff!important;border:1.5px dashed var(--bad)!important}
+.blab{position:absolute;z-index:3;font-size:10px;line-height:1.2;padding:2px 3px;overflow:hidden;pointer-events:none;background:transparent}
+.blab .r{font-weight:700;color:var(--ink)}
+.blab .bad{color:var(--bad);font-weight:700}
 .legend{display:flex;flex-wrap:wrap;gap:10px;font-size:12px;margin-top:8px}
 .legend span{display:inline-flex;align-items:center;gap:4px}
 .legend i{width:12px;height:12px;border-radius:3px;display:inline-block}
@@ -72,9 +80,13 @@ label{display:block;font-size:13px;color:var(--sub);margin:8px 0 4px}
 .tgrid{display:grid;grid-template-columns:40px repeat(7,minmax(0,1fr));gap:2px;user-select:none;-webkit-user-select:none}
 .tgrid.paint{touch-action:none}
 .tgrid .th{font-size:12px;text-align:center;padding:5px 0;background:#404040;color:#fff;border-radius:6px}
-.tgrid .tt{font-size:10px;color:var(--sub);display:flex;align-items:center;justify-content:flex-end;padding-right:3px}
-.tc{min-height:32px;background:#fff8f7;border:1px solid var(--line);border-radius:6px;display:flex;flex-direction:column;gap:1px;padding:1px;cursor:pointer}
-.tc.has{background:#fff}
+.tgrid .tt{font-size:11px;color:var(--sub);display:flex;align-items:center;justify-content:flex-end;padding-right:3px}
+.tc{min-height:32px;background:#fff;border:1px solid var(--line);border-radius:6px;display:flex;flex-direction:column;gap:1px;padding:1px;cursor:pointer}
+.tc.alt,.tgrid .tt.alt{background:#ececec;border:1px solid #8a8a8a}
+.tgrid .th.hl{background:#fff;color:#404040;box-shadow:inset 0 0 0 2px #404040}
+.tgrid .tt.hl{background:#404040!important;color:#fff;font-weight:700;border-color:#404040}
+.tc.hl{box-shadow:inset 0 0 0 2px #404040}
+.tgrid .tt{border-radius:6px}
 .tc.off{background:repeating-linear-gradient(45deg,#f1eeea,#f1eeea 4px,#e9e4de 4px,#e9e4de 8px);cursor:default}
 .chip{font-size:10px;line-height:1.35;border-radius:4px;color:#fff;text-align:center;white-space:nowrap;overflow:hidden;padding:1px 0}
 .chip.own{background:#cfc8e8;color:#3b315e}
@@ -82,6 +94,9 @@ label{display:block;font-size:13px;color:var(--sub);margin:8px 0 4px}
 .sum td,.sum th{padding:6px 4px;border-bottom:1px solid var(--line);font-size:12px;text-align:right;white-space:nowrap}
 .sum td:first-child,.sum th:first-child{text-align:left}
 .sum{width:100%;border-collapse:collapse}
+.hcirc{display:inline-flex;align-items:center;justify-content:center;min-width:24px;height:24px;padding:0 4px;border-radius:12px;background:#2f6fd6;color:#fff;font-weight:700;font-size:12px}
+.hcirc.over{background:var(--bad)}
+.hcirc.sm{min-width:0;height:18px;padding:0 7px;font-size:11px;font-weight:600}
 .scroll-x{overflow-x:auto}
 #print{display:none}
 @media print{body>*:not(#print){display:none!important}#print{display:block;padding:20px;font-size:14px}#print table{width:100%;border-collapse:collapse}#print td,#print th{border:1px solid #999;padding:6px}}
@@ -235,9 +250,12 @@ function drawGrid(admin) {
   if (!DATA) return;
   const { staff, schedules, punches } = DATA, now = Date.now();
   const S = id => staff.find(s => s.id === id) || { name: '?', color: '#888' };
-  const items = MODE === 'plan'
-    ? schedules.map(s => ({ ...s, kind: 'plan' }))
-    : punches.map(p => ({ ...p, kind: 'real', end: p.end || (p.status === 'open' ? now : p.start + 30 * MIN) }));
+  const mine = ME && ME.role === 'staff' ? ME.id : null;
+  const plan = schedules.map(s => ({ ...s, kind: 'plan' }));
+  const real = punches.map(p => ({ ...p, kind: 'real', end: p.end || (p.status === 'open' ? Math.max(now, p.start + 20 * MIN) : p.start + 30 * MIN) }));
+  // 예정 스케줄: 모든 사람의 예정 + 실제 / 실제 출퇴근: 직원은 본인 예정 + 본인 실제, 관리자는 전체 실제
+  const items = MODE === 'plan' ? plan.concat(real)
+    : mine ? plan.concat(real).filter(x => x.staff_id === mine) : real;
   const H = (CFG.H1 - CFG.H0) * CFG.PX, y = t => (t - CFG.H0) * CFG.PX;
   let h = `<div><div class="ghead"></div><div style="position:relative;height:${H}px">`;
   for (let i = CFG.H0; i <= CFG.H1; i++) h += `<div class="tlabel" style="top:${y(i)}px">${i}</div>`;
@@ -246,37 +264,60 @@ function drawGrid(admin) {
   for (let d = 0; d < 7; d++) {
     const ds = addDays(WEEK, d), de = addDays(WEEK, d + 1), dow = new Date(ds).getDay(), we = dow === 0 || dow === 6;
     const [o, c] = CFG.OPEN[(dow + 6) % 7];
+    const Y = t => y((Math.min(Math.max(t, ds), de) - ds) / HOUR);
     h += `<div class="gcol"><div class="ghead ${ds === todayMs ? 'today' : ''}">${DOW[dow]}<br>${new Date(ds).getDate()}</div><div style="position:relative;height:${H}px">`;
     h += `<div class="closed" style="top:0;height:${y(o)}px"></div><div class="closed" style="top:${y(c)}px;height:${H - y(c)}px"></div>`;
     for (let i = CFG.H0 + 1; i < CFG.H1; i++) h += `<div class="hline" style="top:${y(i)}px"></div>`;
     const owner = DATA.owner ? ownerRanges(DATA.owner, (dow + 6) % 7) : (we ? CFG.OWNER.we : CFG.OWNER.wd);
     owner.forEach(([a, b]) => h += `<div class="owner" style="top:${y(a)}px;height:${(b - a) * CFG.PX}px"></div>`);
-    const dayItems = items.filter(it => it.start < de && it.end > ds).sort((a, b) => a.start - b.start);
-    if (MODE === 'plan') { // 아무도 없는 시간 표시
+    const dayItems = items.filter(it => it.start < de && it.end > ds);
+    if (MODE === 'plan') { // 예정 기준으로 아무도 없는 시간 표시
+      const dp = dayItems.filter(it => it.kind === 'plan');
       for (let t = o; t < c; t += 0.5) {
         const s = ds + t * HOUR, e = s + 30 * MIN;
         const byOwner = owner.some(([a, b]) => t >= a && t < b);
-        const n = dayItems.filter(it => it.start < e && it.end > s).length;
-        if (!n && !byOwner) h += `<div class="gapz" style="top:${y(t)}px;height:${CFG.PX / 2}px"></div>`;
+        if (!dp.some(it => it.start < e && it.end > s) && !byOwner) h += `<div class="gapz" style="top:${y(t)}px;height:${CFG.PX / 2}px"></div>`;
       }
     }
-    const lanes = []; dayItems.forEach(it => { let l = lanes.findIndex(end => end <= it.start); if (l < 0) { l = lanes.length; lanes.push(0); } lanes[l] = it.end; it.lane = l; });
-    const L = Math.max(1, lanes.length);
-    dayItems.forEach(it => {
-      const s = Math.max(it.start, ds), e = Math.min(it.end, de);
-      const top = y((s - ds) / HOUR), hgt = Math.max(14, (e - s) / HOUR * CFG.PX);
-      const st = S(it.staff_id), w = 100 / L;
-      const cls = it.kind === 'plan' ? 'plan' : 'real ' + (it.status || '');
-      const style = it.kind === 'plan' ? `border-color:${st.color};color:${st.color}` : `background:${st.color}`;
-      const label = it.status === 'missing' ? '퇴근누락' : it.status === 'open' ? '근무중' : `${hhmm(it.start)}-${hhmm(it.end)}`;
-      h += `<div class="blk ${cls}" data-id="${it.id}" data-k="${it.kind}" style="top:${top}px;height:${hgt - 2}px;left:calc(${it.lane * w}% + 1px);width:calc(${w}% - 2px);${style}"><b>${esc(st.name)}</b><br>${label}</div>`;
+    // 같은 사람의 예정·실제가 겹치면 한 묶음(같은 줄)으로
+    const by = {}; dayItems.forEach(it => (by[it.staff_id] = by[it.staff_id] || []).push(it));
+    const groups = [];
+    Object.values(by).forEach(arr => {
+      arr.sort((a, b) => a.start - b.start); let cur = null;
+      arr.forEach(it => { if (cur && it.start < cur.end) { cur.items.push(it); cur.end = Math.max(cur.end, it.end); } else groups.push(cur = { sid: it.staff_id, start: it.start, end: it.end, items: [it] }); });
+    });
+    groups.sort((a, b) => a.start - b.start);
+    const TOL = 20 * MIN; // 교대 때 몇 분 겹치는 건 같은 줄에 그림
+    const lanes = []; groups.forEach(g => { let l = lanes.findIndex(e => e <= g.start + TOL); if (l < 0) { l = lanes.length; lanes.push(0); } lanes[l] = g.end; g.lane = l; });
+    const L = Math.max(1, lanes.length), w = 100 / L;
+    groups.forEach(g => {
+      const st = S(g.sid), pos = `left:calc(${g.lane * w}% + 1px);width:calc(${w}% - 2px);`;
+      let lab = `<b>${esc(st.name)}</b>`;
+      g.items.sort((a, b) => (a.kind === 'plan' ? 0 : 1) - (b.kind === 'plan' ? 0 : 1) || a.start - b.start).forEach(it => {
+        const top = Y(it.start), hgt = Math.max(14, Y(it.end) - top);
+        if (it.kind === 'plan') {
+          h += `<div class="blk plan" data-id="${it.id}" data-k="plan" style="top:${top}px;height:${hgt - 2}px;${pos}border-color:${st.color}"></div>`;
+          lab += `<br><span style="color:${st.color}">${hhmm(it.start)}-${hhmm(it.end)}</span>`;
+        } else {
+          h += `<div class="blk real ${it.status || ''}" style="top:${top}px;height:${hgt - 2}px;${pos}background-color:${st.color}40;border-left-color:${st.color}"></div>`;
+          lab += it.status === 'missing' ? `<br><span class="bad">▶${hhmm(it.start)} 퇴근누락</span>`
+            : it.status === 'open' ? `<br><span class="r">▶${hhmm(it.start)}~ 근무중</span>`
+            : `<br><span class="r">▶${hhmm(it.start)}-${hhmm(it.end)}</span>`;
+        }
+      });
+      const gt = Y(g.start), next = groups.find(x => x.lane === g.lane && x.start > g.start);
+      const room = (next ? Y(next.start) : H) - gt; // 짧은 근무도 글자가 보이도록 아래 빈 공간까지 사용
+      const gh = Math.max(14, Math.min(Math.max(Y(g.end) - gt, 44), room));
+      h += `<div class="blab" style="top:${gt}px;height:${gh - 2}px;${pos}color:${st.color}">${lab}</div>`;
     });
     h += `</div></div>`;
   }
   $('#grid').innerHTML = `<div class="grid">${h}</div>`;
-  $('#legend').innerHTML = staff.filter(s => s.active).map(s => `<span><i style="background:${s.color}"></i>${esc(s.name)}</span>`).join('')
+  const shown = mine && MODE === 'real' ? staff.filter(s => s.id === mine) : staff.filter(s => s.active);
+  $('#legend').innerHTML = shown.map(s => `<span><i style="background:${s.color}"></i>${esc(s.name)}</span>`).join('')
+    + `<span><i style="border:1.5px solid #777;background:#fff"></i>예정</span><span><i style="background:#7777;border-left:3px solid #555"></i>▶실제</span>`
     + (MODE === 'plan' ? `<span><i style="background:var(--gap)"></i>빈 시간</span><span><i style="background:#efe9fb"></i>사장님</span>` : '');
-  if (admin && MODE === 'plan') $('#grid').onclick = e => { const b = e.target.closest('.blk'); if (b) editSchedule(DATA.schedules.find(s => s.id === +b.dataset.id)); };
+  if (admin && MODE === 'plan') $('#grid').onclick = e => { const b = e.target.closest('.blk[data-k="plan"]'); if (b) editSchedule(DATA.schedules.find(s => s.id === +b.dataset.id)); };
   else $('#grid').onclick = null;
 }
 
@@ -288,9 +329,7 @@ async function renderStaff() {
   const open = st.open, missing = st.recent.filter(p => p.status === 'missing');
   $('#app').innerHTML = `<div class="wrap">
     <div class="top"><h1>${esc(ME.name)}님</h1><button class="sm" id="out">로그아웃</button></div>
-    <div class="card"><div class="muted">현재 상태</div>
-      <div class="big" style="margin-top:4px">${open ? `<span style="color:var(--ok)">근무 중</span> <span class="muted">${hhmm(open.start)}~</span>` : '퇴근 상태'}</div>
-      <button class="punchbtn ${open ? 'bad' : 'ok'}" id="pbtn">${open ? '퇴근하기' : '출근하기'}</button></div>
+    <div class="card">${statusCard(st)}</div>
     ${missing.length ? `<div class="card" style="border:2px solid var(--bad)"><b style="color:var(--bad)">퇴근을 안 찍은 기록이 있습니다</b>
       <div class="list">${missing.map(p => `<div><span>${mdw(p.start)} ${hhmm(p.start)}~ ?</span><button class="sm pri" data-rq="${p.id}">퇴근시간 요청</button></div>`).join('')}</div></div>` : ''}
     ${st.requests.length ? `<div class="card"><b>승인 대기 중인 요청</b><div class="list">${st.requests.map(r => `<div><span>${mdw(r.start)} ${hhmm(r.start)}-${hhmm(r.end)}</span><span class="badge warn">대기</span></div>`).join('')}</div></div>` : ''}
@@ -298,23 +337,64 @@ async function renderStaff() {
     <div class="card"><div class="row" style="align-items:center"><b>내 최근 기록</b><button class="sm" id="addrq" style="flex:0 0 auto">누락 기록 추가 요청</button></div>
       <div class="list">${st.recent.map(p => `<div><span>${mdw(p.start)} ${hhmm(p.start)}-${p.end ? hhmm(p.end) : '?'}
         ${p.status === 'open' ? '<span class="badge ok">근무중</span>' : p.status === 'missing' ? '<span class="badge bad">퇴근누락</span>' : p.end ? `<span class="muted">${fmtH(Math.round((p.end - p.start) / MIN))}</span>` : ''}
-        ${p.edited ? '<span class="badge">수정됨</span>' : ''}</span>
+        ${endBadge(p)}${p.edited ? '<span class="badge">수정됨</span>' : ''}</span>
         ${p.status !== 'open' ? `<button class="sm" data-rq="${p.id}">수정 요청</button>` : ''}</div>`).join('') || '<div class="muted">기록이 없습니다.</div>'}</div></div>
   </div>`;
   $('#out').onclick = logout;
-  $('#pbtn').onclick = () => punch(open ? 'out' : 'in');
+  document.querySelectorAll('[data-act]').forEach(b => b.onclick = () => b.dataset.act === 'in' ? punchIn() : leave(b.dataset.act, open || st.last));
   $('#addrq').onclick = () => requestEdit(null);
   document.querySelectorAll('[data-rq]').forEach(b => b.onclick = () => requestEdit(st.recent.find(p => p.id === +b.dataset.rq)));
   bindGrid(false, wk);
 }
-async function punch(kind) {
-  const word = kind === 'in' ? '출근' : '퇴근';
-  const ok = await modal(`<div style="text-align:center;padding:10px 0"><div class="big">${esc(ME.name)}님</div><div style="font-size:18px;margin-top:8px">지금 <b>${word}</b> 맞습니까?</div><div class="muted" style="margin-top:6px">${hhmm(Date.now())}</div></div>`, word);
+const END_LABEL = { auto: '예정 퇴근', normal: '정시', early: '조기퇴근', extra: '연장' };
+const endBadge = p => p.end_type ? `<span class="badge ${p.end_type === 'extra' ? 'warn' : p.end_type === 'early' ? 'bad' : ''}">${END_LABEL[p.end_type]}</span>` : '';
+function statusCard(st) {
+  const o = st.open, last = st.last;
+  if (o) {
+    const pe = o.plan_end;
+    return `<div class="muted">현재 상태</div>
+      <div class="big" style="margin-top:4px"><span style="color:var(--ok)">근무 중</span> <span class="muted">${hhmm(o.start)}~${pe ? hhmm(pe) : ''}</span></div>
+      ${pe ? `<div class="muted" style="margin-top:4px">퇴근 버튼을 누르지 않아도 <b>${hhmm(pe)}</b> 퇴근으로 기록됩니다.<br>일찍 가거나 더 일할 때만 아래 버튼을 눌러주세요.</div>`
+           : `<div class="warnlist">예정에 없는 근무입니다. 갈 때 꼭 <b>연장근무</b>를 눌러야 퇴근 시각이 기록됩니다.</div>`}
+      <div class="outbtns">
+        ${pe ? `<button class="bad" data-act="early">조기퇴근</button>` : ''}<button class="warn" data-act="extra">연장근무</button>
+        <button class="pri${pe ? ' go' : ''}" data-act="normal">나가기${pe ? ` <span style="font-size:14px;font-weight:400">(${hhmm(pe)} 퇴근 그대로)</span>` : ''}</button>
+      </div>`;
+  }
+  return `<div class="muted">현재 상태</div><div class="big" style="margin-top:4px">퇴근 상태</div>
+    ${last ? `<div class="warnlist" style="background:#eef4ff">오늘 근무 <b>${hhmm(last.start)}~${hhmm(last.end)}</b> — 예정 퇴근 시각으로 기록됐습니다.<br>예정보다 더 일했다면 <b>연장근무</b>를 눌러주세요.</div>
+      <div class="outbtns"><button class="warn" data-act="extra">연장근무</button><button data-act="normal">나가기</button></div>` : ''}
+    <button class="punchbtn ok" data-act="in">출근하기</button>`;
+}
+async function punchIn() {
+  const ok = await modal(`<div style="text-align:center;padding:10px 0"><div class="big">${esc(ME.name)}님</div><div style="font-size:18px;margin-top:8px">지금 <b>출근</b> 맞습니까?</div><div class="muted" style="margin-top:6px">${hhmm(Date.now())}</div>
+    <div class="muted" style="margin-top:8px;font-size:12px">예정보다 일찍 오거나 ${5}분 이내로 늦으면 예정 출근 시각으로 기록됩니다.</div></div>`, '출근');
   if (!ok) return;
   toast('위치 확인 중...');
   const pos = await getPos();
-  const r = await run(() => withConfirm('/punch/' + kind, pos));
-  if (r && r.ok) { toast(`${word} 완료 (${hhmm(r.at)})${r.minutes ? ' · ' + fmtH(r.minutes) : ''}`); renderStaff(); }
+  const r = await run(() => withConfirm('/punch/in', pos));
+  if (r && r.ok) { toast(`출근 완료 · ${hhmm(r.at)}부터 기록${r.at !== r.raw ? ` (누른 시각 ${hhmm(r.raw)})` : ''}`, 4000); renderStaff(); }
+}
+async function leave(type, row) {
+  const now = hhmm(Date.now()), pe = row && row.plan_end ? hhmm(row.plan_end) : null;
+  // 나가기: 기록은 건드리지 않고 화면만 닫음 (예정 퇴근 시각으로 자동 기록됨)
+  if (type === 'normal') {
+    logout();
+    toast(pe ? `예정대로 ${pe} 퇴근으로 기록됩니다.` : '퇴근 시각은 기록되지 않았습니다. 갈 때 연장근무를 눌러주세요.', 4000);
+    return;
+  }
+  const msg = type === 'early' ? `지금 <b>${now}</b> <b style="color:var(--bad)">조기퇴근</b>으로 기록할까요?`
+    : type === 'extra' ? (pe ? `지금 <b>${now}</b>까지 <b style="color:var(--warn)">연장근무</b>로 기록할까요?` : `지금 <b>${now}</b> 퇴근으로 기록할까요?<div class="muted" style="font-size:13px;margin-top:4px">예정에 없는 근무라 실제 시각으로 기록됩니다.</div>`)
+    : pe ? `<b>정시퇴근</b> — <b>${pe}</b> 퇴근으로 기록하고 나갑니다.` : `지금 <b>${now}</b> 퇴근으로 기록하고 나갑니다.`;
+  const ok = await modal(`<div style="text-align:center;padding:10px 0"><div class="big">${esc(ME.name)}님</div><div style="font-size:17px;margin-top:10px;line-height:1.5">${msg}</div></div>`,
+    'YES', undefined, 'NO');
+  if (!ok) return;
+  toast('위치 확인 중...');
+  const pos = await getPos();
+  const r = await run(() => withConfirm('/punch/out', { ...pos, type }));
+  if (!r || !r.ok) return;
+  toast(`${END_LABEL[r.type] || '퇴근'} ${hhmm(r.at)} 기록 · 오늘 ${fmtH(r.minutes)}`, 4000);
+  if (type === 'normal') logout(); else renderStaff();
 }
 async function requestEdit(p) {
   const v = await modal(`<h3>${p ? '기록 수정 요청' : '누락 기록 추가 요청'}</h3>
@@ -341,7 +421,7 @@ async function renderAdmin() {
   PREWEEK = wk;
   const tabs = [['tpl', `근무표${TPL_DIRTY ? '*' : ''}`], ['grid', '주간표'], ['punch', '출퇴근 기록'], ['req', `수정요청${reqs.length ? ' ' + reqs.length : ''}`], ['pay', '급여'], ['staff', '직원']];
   $('#app').innerHTML = `<div class="wrap"><div class="top"><h1>관리자</h1><button class="sm" id="out">로그아웃</button></div>
-    <div class="tabs">${tabs.map(([k, n]) => `<button class="${TAB === k ? 'on' : ''}" data-tab="${k}">${n}</button>`).join('')}</div><div id="body"></div></div>`;
+    <div class="tabs admintabs">${tabs.map(([k, n]) => `<button class="${TAB === k ? 'on' : ''}" data-tab="${k}">${n}</button>`).join('')}</div><div id="body"></div></div>`;
   $('#out').onclick = logout;
   document.querySelectorAll('[data-tab]').forEach(b => b.onclick = () => { TAB = b.dataset.tab; renderAdmin(); });
   ({ tpl: tabTpl, grid: tabGrid, punch: tabPunch, req: () => tabReq(reqs), pay: tabPay, staff: tabStaff })[TAB]();
@@ -367,20 +447,32 @@ function tabGrid() {
     if (r) { toast(`${r.copied}건 복사${r.skipped ? `, ${r.skipped}건 겹쳐서 건너뜀` : ''}`); WEEK = addDays(WEEK, 7); loadWeek(true); }
   };
 }
-let EDIT_SID = null;
+let EDIT_SID = null, ADD_MODE = false;
 async function editSchedule(s) {
   if (!s) return;
-  EDIT_SID = s.id;
+  EDIT_SID = s.id; ADD_MODE = false;
   const v = await modal(`<h3>스케줄 수정</h3><label>직원</label><select id="eS">${staffOpts(s.staff_id)}</select>
     <label>날짜</label><input type="date" id="eD" value="${ymd(s.start)}">
     <div class="row"><div><label>시작</label><input type="time" id="eA" value="${hhmm(s.start)}"></div><div><label>종료</label><input type="time" id="eB" value="${hhmm(s.end)}"></div></div>
-    <button class="bad sm" id="eDel" style="margin-top:14px">이 스케줄 삭제</button>`, '저장', () => {
-      const d = $('#eD').value; return { id: s.id, staff_id: +$('#eS').value, start: toMs(d, $('#eA').value), end: toMs(d, $('#eB').value) };
+    <div style="display:flex;gap:6px;margin-top:14px;flex-wrap:wrap"><button class="bad sm" id="eDel">이 스케줄 삭제</button><button class="sm" id="eAdd">+ 이 시간에 다른 알바 추가</button></div>`, '저장', () => {
+      const d = $('#eD').value; return { id: ADD_MODE ? null : s.id, staff_id: +$('#eS').value, start: toMs(d, $('#eA').value), end: toMs(d, $('#eB').value) };
     });
   if (!v) return;
   const r = await run(() => withConfirm('/admin/schedule', v));
-  if (r && r.ok) { toast('저장했습니다'); loadWeek(true); }
+  if (r && r.ok) { clearWeekCache(); toast(ADD_MODE ? '추가했습니다' : r.merged ? '겹치는 스케줄을 하나로 합쳐 저장했습니다' : '저장했습니다'); loadWeek(true); }
 }
+// 수정 창의 '다른 알바 추가': 고른 직원·시간으로 새 스케줄을 하나 더 만듦 (원래 스케줄은 그대로)
+document.addEventListener('click', async e => {
+  if (e.target.id !== 'eAdd') return;
+  const box = e.target.closest('.modal'), d = $('#eD').value, cur = DATA && DATA.schedules.find(s => s.id === EDIT_SID);
+  const others = STAFF.filter(s => s.active && (!cur || s.id !== cur.staff_id));
+  if (!others.length) return toast('추가할 다른 직원이 없습니다');
+  box.querySelector('h3').textContent = '같은 시간에 알바 추가';
+  $('#eS').innerHTML = others.map(s => `<option value="${s.id}">${esc(s.name)}</option>`).join('');
+  e.target.parentElement.remove();
+  box.querySelector('[data-ok]').textContent = '추가';
+  EDIT_SID = null; ADD_MODE = true;
+});
 // 스케줄 삭제 버튼 (모달 안)
 document.addEventListener('click', async e => {
   if (e.target.id !== 'eDel') return;
@@ -406,31 +498,31 @@ async function tabTpl() {
   }
   const active = STAFF.filter(s => s.active);
   const H0 = Math.min(...CFG.OPEN.map(x => x[0])), H1 = Math.max(...CFG.OPEN.map(x => x[1]));
-  let g = `<div></div>${TDAYS.map(d => `<div class="th">${d}</div>`).join('')}`;
+  let g = `<div></div>${TDAYS.map(d => `<div class="th" data-d="${TDAYS.indexOf(d)}">${d}</div>`).join('')}`;
   for (let h = H0; h < H1; h++) {
-    g += `<div class="tt">${pad(h)}:00</div>`;
-    for (let d = 0; d < 7; d++) g += isOff(d, h) ? `<div class="tc off"></div>` : `<div class="tc" data-k="${d}-${h}"></div>`;
+    const alt = (h - H0) % 2 ? ' alt' : '';
+    g += `<div class="tt${alt}" data-h="${h}">${pad(h)}:00</div>`;
+    for (let d = 0; d < 7; d++) g += isOff(d, h) ? `<div class="tc off"></div>` : `<div class="tc${alt}" data-k="${d}-${h}"></div>`;
   }
   $('#body').innerHTML = `<div class="card">
-      <div class="row" style="align-items:center"><b style="font-size:16px">주간 근무표</b>
-        <span class="muted" style="text-align:right">${TPL_DIRTY ? '<b style="color:var(--bad)">저장 안 됨</b>' : '저장됨'}</span></div>
-      <div class="muted" style="margin:4px 0 6px">사람을 고른 뒤 칸을 누르거나 끌어서 칠하세요. 같은 사람으로 다시 누르면 지워집니다. 한 칸에 2명도 됩니다.</div>
+      <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+        <b style="font-size:16px">주간 근무표</b>
+        <span class="muted" id="tStat">${TPL_DIRTY ? '<b style="color:var(--bad)">저장 안 됨</b>' : '저장됨'}</span>
+        <span style="flex:1"></span>
+        <button class="sm" id="tSave">저장</button><button class="sm pri" id="tApply">적용</button></div>
       <div class="pal" id="pal">
         ${active.map(s => `<button data-b="${s.id}" style="background:${s.color};color:#fff">${esc(s.name)}</button>`).join('')}
         <button data-b="O" style="background:#cfc8e8;color:#3b315e">사장</button>
-        <button data-b="X">지우개</button>
-        <button data-b="" class="sm">선택 해제</button>
       </div>
       ${active.length ? '' : '<div class="warnlist">직원 탭에서 직원을 먼저 등록하세요.</div>'}
       <div class="tgrid" id="tg">${g}</div>
-      <div class="row" style="margin-top:12px"><button id="tSave">저장</button><button class="pri" id="tApply">주간표에 적용</button></div>
       <div style="text-align:right;margin-top:8px"><button class="sm" id="tClear">사장 칸 빼고 모두 지우기</button></div>
     </div>
     <div class="card"><b>근무자별 주간 근무시간</b><div class="scroll-x" id="tsum"></div>
-      <div class="muted" style="margin-top:6px">유급 시간은 4시간 이상 연속 근무 시 휴게 30분을 뺀 시간입니다. 주 15시간 이상이면 주휴수당이 발생합니다.</div></div>`;
+      <div class="muted" style="margin-top:8px" id="tnote"></div></div>`;
   document.querySelectorAll('.tc[data-k]').forEach(drawCell);
   markBrush();
-  $('#pal').onclick = e => { const b = e.target.closest('[data-b]'); if (!b) return; BRUSH = b.dataset.b || null; markBrush(); };
+  $('#pal').onclick = e => { const b = e.target.closest('[data-b]'); if (!b) return; BRUSH = b.dataset.b === BRUSH ? null : b.dataset.b; markBrush(); };
   bindPaint();
   $('#tSave').onclick = saveTpl;
   $('#tApply').onclick = applyTpl;
@@ -457,7 +549,7 @@ function drawCell(el) {
 function dirty() {
   TPL_DIRTY = true;
   const t = document.querySelector('[data-tab="tpl"]'); if (t) t.textContent = '근무표*';
-  const lab = document.querySelector('#body .row .muted'); if (lab) lab.innerHTML = '<b style="color:var(--bad)">저장 안 됨</b>';
+  const lab = $('#tStat'); if (lab) lab.innerHTML = '<b style="color:var(--bad)">저장 안 됨</b>';
 }
 function paintCell(k, mode) {
   let v = (TPL[k] || []).slice();
@@ -480,13 +572,26 @@ function bindPaint() {
     PAINT = { mode, last: c.dataset.k };
     paintCell(c.dataset.k, mode);
   };
+  // 마우스·손가락이 있는 칸의 요일과 시간을 반전 표시
+  let hlKey = null;
+  const hl = c => {
+    const k = c ? c.dataset.k : null; if (k === hlKey) return; hlKey = k;
+    tg.querySelectorAll('.hl').forEach(x => x.classList.remove('hl'));
+    if (!c) return;
+    const [d, hh] = k.split('-');
+    c.classList.add('hl');
+    tg.querySelector(`.th[data-d="${d}"]`).classList.add('hl');
+    tg.querySelector(`.tt[data-h="${hh}"]`).classList.add('hl');
+  };
   tg.onpointermove = e => {
-    if (!PAINT) return;
-    const c = cellAt(e); if (!c || c.dataset.k === PAINT.last) return;
+    const c = cellAt(e); hl(c);
+    if (!PAINT || !c || c.dataset.k === PAINT.last) return;
     PAINT.last = c.dataset.k; paintCell(c.dataset.k, PAINT.mode);
   };
+  tg.addEventListener('pointerdown', e => hl(cellAt(e)));
   const end = () => { if (PAINT) { PAINT = null; drawSummary(); } };
-  tg.onpointerup = end; tg.onpointercancel = end; tg.onpointerleave = end;
+  tg.onpointerup = end; tg.onpointercancel = end;
+  tg.onpointerleave = () => { end(); hl(null); };
 }
 // 근무표에서 사람별 요일별 연속 근무 구간 계산
 function tplShifts(id) {
@@ -509,7 +614,7 @@ function drawSummary() {
   const dim = new Date(y, mo + 1, 0).getDate();
   const dayCount = [0, 0, 0, 0, 0, 0, 0];
   for (let i = 1; i <= dim; i++) dayCount[(new Date(y, mo, i).getDay() + 6) % 7]++;
-  let rows = '', totPay = 0, totMon = 0;
+  let rows = '', totPay = 0, totMon = 0; const over = [], brk = [];
   for (const s of list) {
     const days = tplShifts(s.id);
     const hrs = days.map(r => r.reduce((a, [x, z]) => a + z - x, 0));
@@ -517,21 +622,30 @@ function drawSummary() {
     const tot = hrs.reduce((a, b) => a + b, 0), paid = paidDay.reduce((a, b) => a + b, 0);
     if (!tot && !s.active) continue;
     const wk = Math.floor(paid * s.wage / 60), mon = Math.floor(paidDay.reduce((a, m, d) => a + m * dayCount[d], 0) * s.wage / 60);
-    totPay += wk; totMon += mon;
+    totPay += wk; totMon += mon; if (tot >= 15) over.push({ name: esc(s.name), tot, paid });
+    const bd = days.map((r, d) => r.some(([x, z]) => z - x >= 4) ? TDAYS[d] : '').filter(Boolean);
+    if (bd.length) brk.push(`${esc(s.name)}(${bd.join('·')})`);
     rows += `<tr><td><i style="display:inline-block;width:10px;height:10px;border-radius:3px;background:${s.color}"></i> ${esc(s.name)}</td>
       ${hrs.map(h => `<td>${h || '<span class="muted">-</span>'}</td>`).join('')}
-      <td><b>${tot}</b></td><td>${fmtH(paid)}</td>
-      <td>${paid >= 900 ? '<b style="color:var(--bad)">주휴 발생</b>' : tot ? '<span style="color:var(--ok)">✓</span>' : ''}</td>
-      <td>${won(wk)}</td><td>${won(mon)}</td></tr>`;
+      <td style="text-align:center"><span class="hcirc ${tot >= 15 ? 'over' : ''}">${tot}</span></td><td>${fmtH(paid)}</td>
+      <td style="text-align:center">${won(wk)}</td><td style="text-align:center">${won(mon)}</td></tr>`;
   }
   // 요일별 빈 시간 (아무도 없는 영업시간)
   const gaps = TDAYS.map((_, d) => { const [o, c] = openOf(d); let n = 0; for (let h = o; h < c; h++) if (!(TPL[d + '-' + h] || []).length) n++; return n; });
   const ownerH = TDAYS.map((_, d) => Object.keys(TPL).filter(k => k.startsWith(d + '-') && TPL[k].includes('O')).length);
-  $('#tsum').innerHTML = `<table class="sum"><tr><th>이름</th>${TDAYS.map(d => `<th>${d}</th>`).join('')}<th>합계</th><th>유급</th><th>15h</th><th>주급</th><th>${mo + 1}월 예상</th></tr>
-    ${rows || `<tr><td colspan="14" class="muted" style="text-align:left">아직 칠한 칸이 없습니다.</td></tr>`}
-    <tr><td>사장</td>${ownerH.map(h => `<td>${h || '-'}</td>`).join('')}<td>${ownerH.reduce((a, b) => a + b, 0)}</td><td colspan="5"></td></tr>
-    <tr><td><b>빈 시간</b></td>${gaps.map(n => `<td>${n ? `<b style="color:var(--bad)">${n}</b>` : '<span style="color:var(--ok)">0</span>'}</td>`).join('')}<td>${gaps.reduce((a, b) => a + b, 0)}</td><td colspan="5"></td></tr>
-    <tr><td><b>알바비 합계</b></td><td colspan="10"></td><td></td><td><b>${won(totPay)}</b></td><td><b>${won(totMon)}</b></td></tr></table>`;
+  $('#tsum').innerHTML = `<table class="sum"><tr><th>이름</th>${TDAYS.map(d => `<th>${d}</th>`).join('')}<th style="text-align:center">합계</th><th>유급</th><th style="text-align:center">주급</th><th style="text-align:center">${mo + 1}월 예상</th></tr>
+    ${rows || `<tr><td colspan="12" class="muted" style="text-align:left">아직 칠한 칸이 없습니다.</td></tr>`}
+    <tr><td>사장</td>${ownerH.map(h => `<td>${h || '-'}</td>`).join('')}<td style="text-align:center">${ownerH.reduce((a, b) => a + b, 0)}</td><td colspan="3"></td></tr>
+    <tr><td><b>빈 시간</b></td>${gaps.map(n => `<td>${n ? `<b style="color:var(--bad)">${n}</b>` : '<span style="color:var(--ok)">0</span>'}</td>`).join('')}<td style="text-align:center">${gaps.reduce((a, b) => a + b, 0)}</td><td colspan="3"></td></tr>
+    <tr><td><b>알바비 합계</b></td><td colspan="9"></td><td style="text-align:center"><b>${won(totPay)}</b></td><td style="text-align:center"><b>${won(totMon)}</b></td></tr></table>`;
+  const juhu = over.filter(o => o.paid >= 900), near = over.filter(o => o.paid < 900);
+  const line = (label, body, color) => `<div style="margin-top:3px"><b>${label}:</b> <b style="color:${color}">${body}</b></div>`;
+  $('#tnote').innerHTML =
+      line('주휴수당', juhu.length ? juhu.map(o => `${o.name}(유급 ${fmtH(o.paid)})`).join(', ') : '해당자 없음', juhu.length ? 'var(--bad)' : '#2f6fd6')
+    + (near.length ? `<div class="muted" style="margin-left:4px">└ ${near.map(o => `${o.name}: 합계 ${o.tot}시간이지만 유급 ${fmtH(o.paid)}`).join(', ')} → 15시간 미만이라 해당 없음</div>` : '')
+    + line('휴게시간', brk.length ? brk.join(', ') : '해당자 없음', brk.length ? '#b26a00' : '#2f6fd6')
+    + '<div style="margin-top:6px">합계 숫자: <span class="hcirc sm">파랑</span> 15시간 미만 · <span class="hcirc sm over">빨강</span> 15시간 이상.<br>'
+    + '휴게시간: 한 번에 4시간 이상 일하면 30분, 8시간 이상이면 1시간을 근무 중에 줘야 합니다. 주휴수당은 휴게를 뺀 <b>유급 시간</b>이 주 15시간 이상일 때 발생합니다.</div>';
 }
 async function saveTpl() {
   const r = await run(() => api('/admin/template', { grid: TPL }));
@@ -554,15 +668,17 @@ async function applyTpl() {
 }
 
 async function tabPunch() {
-  $('#body').innerHTML = `<div class="card"><div class="gridhead"><div class="row" style="flex:0 0 auto;align-items:center"><button class="sm" id="pw-">◀</button><b style="min-width:120px;text-align:center">${mdw(WEEK)} ~ ${mdw(addDays(WEEK, 6))}</b><button class="sm" id="pw+">▶</button></div>
+  $('#body').innerHTML = `<div class="card"><div class="gridhead"><div class="row" style="flex:0 0 auto;align-items:center"><button class="sm" id="pwPrev">◀</button><b style="min-width:120px;text-align:center">${mdw(WEEK)} ~ ${mdw(addDays(WEEK, 6))}</b><button class="sm" id="pwNext">▶</button></div>
     <button class="sm pri" id="pAdd" style="flex:0 0 auto">기록 직접 추가</button></div><div class="list" id="plist" style="margin-top:8px"><div class="muted">불러오는 중...</div></div></div>`;
-  $('#pw-').onclick = () => { WEEK = addDays(WEEK, -7); tabPunch(); };
-  $('#pw+').onclick = () => { WEEK = addDays(WEEK, 7); tabPunch(); };
+  $('#pwPrev').onclick = () => { WEEK = addDays(WEEK, -7); tabPunch(); };
+  $('#pwNext').onclick = () => { WEEK = addDays(WEEK, 7); tabPunch(); };
   $('#pAdd').onclick = () => editPunch(null);
   const rows = await run(() => api(`/admin/punches?from=${WEEK}&to=${addDays(WEEK, 7)}`)); if (!rows) return;
   $('#plist').innerHTML = rows.map(p => `<div><div><b>${esc(p.name)}</b> ${mdw(p.start)} ${hhmm(p.start)}-${p.end ? hhmm(p.end) : '?'}
       ${p.status === 'missing' ? '<span class="badge bad">퇴근누락</span>' : p.status === 'open' ? '<span class="badge ok">근무중</span>' : `<span class="muted">${fmtH(Math.round((p.end - p.start) / MIN))}</span>`}
-      ${p.edited ? '<span class="badge">수정됨</span>' : ''}${p.note ? `<div class="muted">⚠ ${esc(p.note)}</div>` : ''}</div>
+      ${endBadge(p)}${p.edited ? '<span class="badge">수정됨</span>' : ''}
+      ${(p.raw_start && p.raw_start !== p.start) || (p.raw_end && p.raw_end !== p.end) ? `<div class="muted">누른 시각: 출근 ${p.raw_start ? hhmm(p.raw_start) : '-'}${p.raw_end ? ' · 퇴근 ' + hhmm(p.raw_end) : ''}</div>` : ''}
+      ${p.note ? `<div class="muted">⚠ ${esc(p.note)}</div>` : ''}</div>
       <div style="display:flex;gap:4px;flex:0 0 auto"><button class="sm" data-pe="${p.id}">수정</button><button class="sm" data-pd="${p.id}">삭제</button></div></div>`).join('') || '<div class="muted">기록이 없습니다.</div>';
   document.querySelectorAll('[data-pe]').forEach(b => b.onclick = () => editPunch(rows.find(p => p.id === +b.dataset.pe)));
   document.querySelectorAll('[data-pd]').forEach(b => b.onclick = async () => {
