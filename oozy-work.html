@@ -96,7 +96,8 @@ label{display:block;font-size:13px;color:var(--sub);margin:8px 0 4px}
 const CFG = {
   API: 'https://oozy-work.kghwang1.workers.dev',   // ← 배포한 Worker 주소로 바꾸세요
   H0: 6, H1: 22, PX: 32,                            // 주간표 표시 시간 범위, 1시간당 높이
-  OPEN: { wd: [7, 21], we: [9, 21] },               // 영업시간
+  // 요일별 영업시간 [시작, 끝]  월 화 수 목 금 토 일
+  OPEN: [[7, 21], [7, 21], [7, 21], [7, 21], [7, 21], [7, 21], [9, 21]],
   OWNER: { wd: [[14, 16], [19, 21]], we: [] },      // 사장님 근무시간 (빈 시간 계산에서 제외)
   IDLE_MIN: 3                                        // 이 시간(분) 동안 조작 없으면 자동 로그아웃
 };
@@ -244,7 +245,7 @@ function drawGrid(admin) {
   const todayMs = new Date().setHours(0, 0, 0, 0);
   for (let d = 0; d < 7; d++) {
     const ds = addDays(WEEK, d), de = addDays(WEEK, d + 1), dow = new Date(ds).getDay(), we = dow === 0 || dow === 6;
-    const [o, c] = we ? CFG.OPEN.we : CFG.OPEN.wd;
+    const [o, c] = CFG.OPEN[(dow + 6) % 7];
     h += `<div class="gcol"><div class="ghead ${ds === todayMs ? 'today' : ''}">${DOW[dow]}<br>${new Date(ds).getDate()}</div><div style="position:relative;height:${H}px">`;
     h += `<div class="closed" style="top:0;height:${y(o)}px"></div><div class="closed" style="top:${y(c)}px;height:${H - y(c)}px"></div>`;
     for (let i = CFG.H0 + 1; i < CFG.H1; i++) h += `<div class="hline" style="top:${y(i)}px"></div>`;
@@ -394,7 +395,7 @@ document.addEventListener('click', async e => {
 // TPL: { "요일-시": [직원id..] | ["O"] }  요일 0=월…6=일
 let TPL = null, TPL_DIRTY = false, BRUSH = null, PAINT = null;
 const TDAYS = ['월', '화', '수', '목', '금', '토', '일'];
-const openOf = d => d >= 5 ? CFG.OPEN.we : CFG.OPEN.wd;
+const openOf = d => CFG.OPEN[d];
 const isOff = (d, h) => { const [o, c] = openOf(d); return h < o || h >= c; };
 
 async function tabTpl() {
@@ -404,7 +405,7 @@ async function tabTpl() {
     TPL = t.grid || {}; TPL_DIRTY = false;
   }
   const active = STAFF.filter(s => s.active);
-  const H0 = Math.min(CFG.OPEN.wd[0], CFG.OPEN.we[0]), H1 = Math.max(CFG.OPEN.wd[1], CFG.OPEN.we[1]);
+  const H0 = Math.min(...CFG.OPEN.map(x => x[0])), H1 = Math.max(...CFG.OPEN.map(x => x[1]));
   let g = `<div></div>${TDAYS.map(d => `<div class="th">${d}</div>`).join('')}`;
   for (let h = H0; h < H1; h++) {
     g += `<div class="tt">${pad(h)}:00</div>`;
