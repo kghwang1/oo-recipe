@@ -44,7 +44,7 @@ button.warn{background:var(--warn);color:#fff}
 .pad button.pri{background:var(--brand);color:#fff;font-size:20px}
 /* 주간표 */
 .gridhead{display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap}
-.grid{display:grid;grid-template-columns:34px repeat(7,1fr);overflow-x:auto;margin-top:8px;min-width:0}
+.grid{display:grid;grid-template-columns:34px repeat(7,minmax(0,1fr));overflow:hidden;margin-top:8px;min-width:0;padding-bottom:8px}
 .gcol{position:relative;border-left:1px solid var(--line)}
 .ghead{text-align:center;font-size:12px;padding:4px 0;border-bottom:1px solid var(--line);height:34px}
 .ghead.today{color:#fff;background:var(--brand);border-radius:8px 8px 0 0}
@@ -122,7 +122,7 @@ body.practice{background:#fff4e0}
 </style>
 </head>
 <body>
-<div id="pbanner">연습 모드 · 실제 기록과 급여에는 전혀 반영되지 않습니다</div>
+<div id="pbanner">연습 모드 · 이 휴대폰에만 기록되고 실제 기록에는 반영되지 않습니다</div>
 <div id="app"></div>
 <div id="toast"></div>
 <div id="print"></div>
@@ -134,7 +134,9 @@ const CFG = {
   // 요일별 영업시간 [시작, 끝]  월 화 수 목 금 토 일
   OPEN: [[7, 22], [7, 22], [7, 22], [7, 22], [7, 22], [7, 22], [7, 22]],
   OWNER: { wd: [[14, 16], [19, 21]], we: [] },      // 사장님 근무시간 (빈 시간 계산에서 제외)
-  IDLE_MIN: 3                                        // 이 시간(분) 동안 조작 없으면 자동 로그아웃
+  IDLE_MIN: 3,                                       // 이 시간(분) 동안 조작 없으면 자동 로그아웃
+  PRACTICE_JS: './worker.js',                        // 연습 모드: 같은 폴더의 worker.js를 휴대폰에서 직접 실행
+  SQLJS: ['https://cdnjs.cloudflare.com/ajax/libs/sql.js/1.8.0/', 'https://cdn.jsdelivr.net/npm/sql.js@1.8.0/dist/']
 };
 const DAY = 864e5, HOUR = 36e5, MIN = 6e4;
 const DOW = ['일','월','화','수','목','금','토'];
@@ -156,11 +158,8 @@ function addDays(t, n) { const d = new Date(t); d.setDate(d.getDate() + n); retu
 function toast(msg, ms = 2600) { const t = $('#toast'); t.textContent = msg; t.style.display = 'block'; clearTimeout(t._t); t._t = setTimeout(() => t.style.display = 'none', ms); }
 
 async function api(path, body) {
-  const r = await fetch(CFG.API + path, {
-    method: body ? 'POST' : 'GET',
-    headers: { 'Content-Type': 'application/json', 'X-Pin': PIN, ...(PRACTICE ? { 'X-Practice': '1' } : {}) },
-    body: body ? JSON.stringify(body) : undefined
-  });
+  const init = { method: body ? 'POST' : 'GET', headers: { 'Content-Type': 'application/json', 'X-Pin': PIN }, body: body ? JSON.stringify(body) : undefined };
+  const r = PRACTICE ? await practiceFetch(path, init) : await fetch(CFG.API + path, init);
   const j = await r.json().catch(() => ({ error: '서버 응답을 읽을 수 없습니다.' }));
   if (r.status === 401 && ME) { logout(); throw new Error('다시 로그인해 주세요.'); }
   if (!r.ok && !j.needConfirm) throw new Error(j.error || '오류가 발생했습니다.');
@@ -206,6 +205,46 @@ async function idleLogout() {
 }
 ['click', 'touchstart', 'keydown'].forEach(e => document.addEventListener(e, resetIdle, { passive: true }));
 
+// ===== 연습 모드: 서버 대신 이 휴대폰 안에서 실행 =====
+const PKEY = 'oozyPracticeDB';
+let PW = null;
+const loadScript = src => new Promise((ok, no) => { const s = document.createElement('script'); s.src = src; s.onload = ok; s.onerror = no; document.head.appendChild(s); });
+async function practiceEngine() {
+  if (PW) return PW;
+  let SQL = null;
+  for (const base of CFG.SQLJS) {
+    try { if (!window.initSqlJs) await loadScript(base + 'sql-wasm.js'); SQL = await initSqlJs({ locateFile: f => base + f }); break; } catch (e) { }
+  }
+  if (!SQL) throw new Error('연습 프로그램을 불러오지 못했습니다. 인터넷 연결을 확인하세요.');
+  let mod;
+  try { mod = await import(new URL(CFG.PRACTICE_JS, location.href).href); }
+  catch (e) { throw new Error('연습용 파일(worker.js)을 찾지 못했습니다. GitHub에 oozy-work.html과 같은 폴더로 worker.js를 올려주세요.'); }
+  let saved = null; try { saved = localStorage.getItem(PKEY); } catch (e) { }
+  const db = saved ? new SQL.Database(Uint8Array.from(atob(saved), c => c.charCodeAt(0))) : new SQL.Database();
+  const save = () => { try { const u = db.export(); let s = ''; for (let i = 0; i < u.length; i += 8192) s += String.fromCharCode.apply(null, u.subarray(i, i + 8192)); localStorage.setItem(PKEY, btoa(s)); } catch (e) { } };
+  // Cloudflare D1과 같은 사용법으로 감싸기
+  const norm = v => v === undefined ? null : v === true ? 1 : v === false ? 0 : v;
+  const stmt = q => {
+    let args = [];
+    const rows = () => { const st = db.prepare(q); st.bind(args.map(norm)); const out = []; while (st.step()) out.push(st.getAsObject()); st.free(); return out; };
+    const o = {
+      bind(...a) { args = a; return o; },
+      _rows: rows,
+      async first() { return rows()[0] ?? null; },
+      async all() { return { results: rows() }; },
+      async run() { rows(); const id = db.exec('SELECT last_insert_rowid()')[0].values[0][0]; save(); return { meta: { last_row_id: id } }; },
+    };
+    return o;
+  };
+  const DB = { prepare: stmt, async batch(list) { const res = list.map(s => ({ results: s._rows() })); save(); return res; } };
+  PW = { worker: mod.default, env: { DB, ADMIN_PIN: '0000', PRACTICE: true } };
+  return PW;
+}
+async function practiceFetch(path, init) {
+  try { const e = await practiceEngine(); return await e.worker.fetch(new Request('https://practice.local' + path, init), e.env); }
+  catch (err) { return new Response(JSON.stringify({ error: err.message }), { status: 500 }); }
+}
+
 // ===== 로그인 =====
 function logout() {
   if (TPL_DIRTY && ME && ME.role === 'admin' && !confirm('근무표에 저장하지 않은 변경이 있습니다. 그래도 로그아웃할까요?')) return resetIdle();
@@ -222,7 +261,7 @@ function showLogin() {
     <div class="dots" id="dots"></div>
     <div class="pad">${[1,2,3,4,5,6,7,8,9].map(n => `<button data-n="${n}">${n}</button>`).join('')}<button data-n="del">⌫</button><button data-n="0">0</button><button data-n="go" class="pri">확인</button></div>
     <div class="practbox">${PRACTICE ? `
-      <div class="hint"><b>연습용 PIN</b><br>👤 사장님: <b>0000</b><br>🧑 연습A: <b>1111</b> — 지금 근무 시작 (정시 출근 연습)<br>🧑 연습B: <b>2222</b> — 20분 뒤 시작 (일찍 출근 연습)<br>🧑 연습C: <b>3333</b> — 오늘 예정 없음 (연장근무로 퇴근 연습)</div>
+      <div class="hint"><b>연습용 PIN</b> <span class="muted" style="font-size:12px">(연습 기록은 이 휴대폰에만 저장됩니다)</span><br>👤 사장님: <b>0000</b><br>🧑 연습A: <b>1111</b> — 지금 근무 시작 (정시 출근 연습)<br>🧑 연습B: <b>2222</b> — 20분 뒤 시작 (일찍 출근 연습)<br>🧑 연습C: <b>3333</b> — 오늘 예정 없음 (연장근무로 퇴근 연습)</div>
       <div style="display:flex;gap:8px"><button class="sm" id="pReset" style="flex:1">연습 처음부터 다시</button><button class="sm pri" id="pExit" style="flex:1">연습 끝내기</button></div>`
       : `<button id="pStart" style="width:100%;background:#fff3e0;color:#b25e00;border:2px dashed #ff8f00">🎓 연습하기 <span style="font-size:12px;font-weight:400">(실제 기록에 영향 없음)</span></button>`}</div></div>`;
   const dots = () => $('#dots').innerHTML = '<i></i>'.repeat(v.length);
@@ -236,7 +275,7 @@ function showLogin() {
   const ps = $('#pStart'); if (ps) ps.onclick = () => { setPractice(true); showLogin(); toast('연습 모드입니다. 아래 연습용 PIN으로 들어가 보세요', 3500); };
   const px = $('#pExit'); if (px) px.onclick = () => { setPractice(false); showLogin(); toast('연습을 끝냈습니다'); };
   const pr = $('#pReset'); if (pr) pr.onclick = async () => {
-    if (!await modal('<h3>연습 처음부터 다시</h3>연습에서 찍은 출퇴근·근무표·급여 확정을 모두 지우고, 연습용 기본 데이터로 되돌립니다.<br><span class="muted">실제 기록은 그대로입니다.</span>', '다시 시작')) return;
+    if (!await modal('<h3>연습 처음부터 다시</h3>이 휴대폰에 저장된 연습 기록(출퇴근·근무표·급여 확정)을 모두 지우고 처음 상태로 되돌립니다.<br><span class="muted">실제 기록과 다른 사람 휴대폰의 연습은 그대로입니다.</span>', '다시 시작')) return;
     if (await run(() => api('/practice/reset', {}))) toast('연습 데이터를 처음 상태로 되돌렸습니다');
   };
 }
@@ -251,7 +290,7 @@ async function login(v) {
 function gridSection(admin) {
   return `<div class="card"><div class="gridhead">
     <div class="row" style="flex:0 0 auto;align-items:center"><button class="sm" data-w="-1">◀</button><b id="wk" style="min-width:120px;text-align:center"></b><button class="sm" data-w="1">▶</button></div>
-    <div class="tabs" style="flex:0 0 auto"><button class="sm ${MODE==='plan'?'on':''}" data-m="plan">예정 스케줄</button><button class="sm ${MODE==='real'?'on':''}" data-m="real">실제 출퇴근</button></div></div>
+    <div class="tabs" style="flex:0 0 auto"><button class="sm ${MODE==='plan'?'on':''}" data-m="plan">근무시간표</button><button class="sm ${MODE==='real'?'on':''}" data-m="real">${admin ? "출퇴근 기록" : "나의 근무"}</button></div></div>
     <div id="grid"></div><div class="legend" id="legend"></div>
     ${admin ? `<div class="muted" style="margin-top:6px">스케줄 칸을 누르면 수정/삭제할 수 있습니다.</div>` : ''}</div>`;
 }
@@ -288,7 +327,7 @@ function drawGrid(admin) {
   const mine = ME && ME.role === 'staff' ? ME.id : null;
   const plan = schedules.map(s => ({ ...s, kind: 'plan' }));
   const real = punches.map(p => ({ ...p, kind: 'real', end: p.end || (p.status === 'open' ? Math.max(now, p.start + 20 * MIN) : p.start + 30 * MIN) }));
-  // 예정 스케줄: 모든 사람의 예정 + 실제 / 실제 출퇴근: 직원은 본인 예정 + 본인 실제, 관리자는 전체 실제
+  // 근무시간표: 모든 사람의 예정 + 실제 / 출퇴근 기록: 직원은 본인 예정 + 본인 실제, 관리자는 전체 실제
   const items = MODE === 'plan' ? plan.concat(real)
     : mine ? plan.concat(real).filter(x => x.staff_id === mine) : real;
   const H = (CFG.H1 - CFG.H0) * CFG.PX, y = t => (t - CFG.H0) * CFG.PX;
@@ -521,7 +560,7 @@ async function renderAdmin() {
   const [sf, rq] = await Promise.all([run(() => api('/admin/staff')), run(() => api('/admin/requests'))]);
   STAFF = sf || []; const reqs = rq || [];
   PREWEEK = wk;
-  const tabs = [['tpl', `근무표${TPL_DIRTY ? '*' : ''}`], ['grid', '주간표'], ['punch', '출퇴근 기록'], ['req', `수정요청${reqs.length ? ' ' + reqs.length : ''}`], ['pay', '급여'], ['staff', '직원']];
+  const tabs = [['tpl', `근무표${TPL_DIRTY ? '*' : ''}`], ['grid', '주간표'], ['punch', '근무기록/수정'], ['req', `수정요청${reqs.length ? ' ' + reqs.length : ''}`], ['pay', '급여'], ['staff', '직원']];
   $('#app').innerHTML = `<div class="wrap"><div class="top"><h1>관리자</h1><button class="sm" id="out">로그아웃</button></div>
     <div class="tabs admintabs">${tabs.map(([k, n]) => `<button class="${TAB === k ? 'on' : ''}" data-tab="${k}">${n}</button>`).join('')}</div><div id="body"></div></div>`;
   $('#out').onclick = logout;
@@ -720,13 +759,14 @@ function drawSummary() {
   for (const s of list) {
     const days = tplShifts(s.id);
     const hrs = days.map(r => r.reduce((a, [x, z]) => a + z - x, 0));
-    const paidDay = days.map(r => r.reduce((a, [x, z]) => { const m = (z - x) * 60; return a + m - (m >= 480 ? 60 : m >= 240 ? 30 : 0); }, 0));
+    const ub = s.use_break !== 0;
+    const paidDay = days.map(r => r.reduce((a, [x, z]) => { const m = (z - x) * 60; return a + m - (!ub ? 0 : m >= 510 ? 60 : m >= 240 ? 30 : 0); }, 0));
     const tot = hrs.reduce((a, b) => a + b, 0), paid = paidDay.reduce((a, b) => a + b, 0);
     if (!tot && !s.active) continue;
     const wk = Math.floor(paid * s.wage / 60), mon = Math.floor(paidDay.reduce((a, m, d) => a + m * dayCount[d], 0) * s.wage / 60);
     totPay += wk; totMon += mon; if (tot >= 15) over.push({ name: esc(s.name), tot, paid });
     const bd = days.map((r, d) => r.some(([x, z]) => z - x >= 4) ? TDAYS[d] : '').filter(Boolean);
-    if (bd.length) brk.push(`${esc(s.name)}(${bd.join('·')})`);
+    if (bd.length) brk.push(`${esc(s.name)}(${bd.join('·')})${ub ? '' : ' <span style="color:var(--sub);font-weight:400">휴게 없음·전부 유급</span>'}`);
     rows += `<tr><td><i style="display:inline-block;width:10px;height:10px;border-radius:3px;background:${s.color}"></i> ${esc(s.name)}</td>
       ${hrs.map(h => `<td>${h || '<span class="muted">-</span>'}</td>`).join('')}
       <td style="text-align:center"><span class="hcirc ${tot >= 15 ? 'over' : ''}">${tot}</span></td><td>${fmtH(paid)}</td>
@@ -747,7 +787,7 @@ function drawSummary() {
     + (near.length ? `<div class="muted" style="margin-left:4px">└ ${near.map(o => `${o.name}: 합계 ${o.tot}시간이지만 유급 ${fmtH(o.paid)}`).join(', ')} → 15시간 미만이라 해당 없음</div>` : '')
     + line('휴게시간', brk.length ? brk.join(', ') : '해당자 없음', brk.length ? '#b26a00' : '#2f6fd6')
     + '<div style="margin-top:6px">합계 숫자: <span class="hcirc sm">파랑</span> 15시간 미만 · <span class="hcirc sm over">빨강</span> 15시간 이상.<br>'
-    + '휴게시간: 한 번에 4시간 이상 일하면 30분, 8시간 이상이면 1시간을 근무 중에 줘야 합니다. 주휴수당은 휴게를 뺀 <b>유급 시간</b>이 주 15시간 이상일 때 발생합니다.</div>';
+    + '휴게시간: 4시간 이상 일하면 30분, 8시간 이상 일하면 1시간을 근무 중에 줘야 합니다 (출근~퇴근 8시간 30분 이상이면 1시간 차감). 주휴수당은 휴게를 뺀 <b>유급 시간</b>이 주 15시간 이상일 때 발생합니다.</div>';
 }
 async function saveTpl() {
   const r = await run(() => api('/admin/template', { grid: TPL }));
@@ -819,7 +859,7 @@ async function tabPay() {
   const sum = PAY.staff.reduce((a, s) => a + s.pay, 0);
   const confAt = PAY.staff.map(s => s.confirmedAt).filter(Boolean).sort().pop();
   const unres = PAY.staff.reduce((a, s) => a + s.unresolved, 0);
-  $('#paybody').innerHTML = `<div class="card"><b>${PAY.month} 인건비 합계: ${won(sum)}</b><div class="muted">휴게시간 자동 차감: 4시간 이상 30분, 8시간 이상 1시간</div>
+  $('#paybody').innerHTML = `<div class="card"><b>${PAY.month} 인건비 합계: ${won(sum)}</b><div class="muted">휴게시간 차감(직원 탭에서 "휴게시간 사용"인 사람만): 출근~퇴근 4시간 이상 30분, 8시간 30분 이상 1시간</div>
       <div style="margin-top:10px;display:flex;gap:6px;flex-wrap:wrap;align-items:center">
         ${confAt ? `<span class="stamp ok">확정됨 ${mdw(confAt)} ${hhmm(confAt)}</span>` : '<span class="stamp wip">확정 전</span>'}
         <span style="flex:1"></span>
@@ -828,7 +868,7 @@ async function tabPay() {
       </div>
       <div class="muted" style="margin-top:6px">확정하면 알바가 자기 PIN으로 로그인해 <b>확정급여</b>에서 본인 명세서만 볼 수 있습니다.</div></div>` +
     PAY.staff.map(s => `<div class="card" style="border-left:5px solid ${s.color}">
-      <div class="row" style="align-items:center"><div><b style="font-size:17px">${esc(s.name)}</b> <span class="muted">시급 ${won(s.wage)}</span>${s.confirmedAt ? ' <span class="badge ok">확정</span>' : ''}</div><button class="sm" data-slip="${s.id}" style="flex:0 0 auto">명세서</button></div>
+      <div class="row" style="align-items:center"><div><b style="font-size:17px">${esc(s.name)}</b> <span class="muted">시급 ${won(s.wage)}</span>${s.useBreak === false ? ' <span class="badge warn">휴게 없음</span>' : ''}${s.confirmedAt ? ' <span class="badge ok">확정</span>' : ''}</div><button class="sm" data-slip="${s.id}" style="flex:0 0 auto">명세서</button></div>
       <table class="pay" style="margin-top:6px"><tr><th>근무일</th><th>총 시간</th><th>휴게</th><th>유급 시간</th><th>급여</th></tr>
       <tr><td>${s.days}일</td><td>${fmtH(s.total)}</td><td>${fmtH(s.brk)}</td><td>${fmtH(s.paid)}</td><td><b>${won(s.pay)}</b></td></tr></table>
       ${s.unresolved ? `<div class="warnlist" style="background:#fde3e3">⚠ 퇴근누락/근무중 기록 ${s.unresolved}건이 계산에서 빠졌습니다. 기록 탭에서 정리하세요.</div>` : ''}
@@ -890,7 +930,7 @@ function showSlip(s, month, label) {
 async function tabStaff() {
   const COLORS = ['#e4572e', '#1d8a4b', '#3a6ea5', '#9c27b0', '#d98200', '#00897b', '#c2185b', '#5d4037'];
   $('#body').innerHTML = `<div class="card"><div class="row" style="align-items:center"><b>직원 목록</b><button class="sm pri" id="nAdd" style="flex:0 0 auto">직원 추가</button></div>
-    <div class="list">${STAFF.map(s => `<div><span><i style="display:inline-block;width:12px;height:12px;border-radius:3px;background:${s.color}"></i> <b>${esc(s.name)}</b> <span class="muted">PIN ${esc(s.pin)} · ${won(s.wage)}</span>${s.active ? '' : '<span class="badge">퇴사</span>'}</span>
+    <div class="list">${STAFF.map(s => `<div><span><i style="display:inline-block;width:12px;height:12px;border-radius:3px;background:${s.color}"></i> <b>${esc(s.name)}</b> <span class="muted">PIN ${esc(s.pin)} · ${won(s.wage)}</span>${s.use_break === 0 ? '<span class="badge warn">휴게 없음</span>' : '<span class="badge">휴게 있음</span>'}${s.active ? '' : '<span class="badge">퇴사</span>'}</span>
       <button class="sm" data-se="${s.id}">수정</button></div>`).join('') || '<div class="muted">등록된 직원이 없습니다.</div>'}</div></div>`;
   const edit = async s => {
     const col = s ? s.color : COLORS[STAFF.length % COLORS.length];
@@ -899,8 +939,10 @@ async function tabStaff() {
       <label>PIN (숫자 4~6자리, 직원마다 다르게)</label><input id="fP" inputmode="numeric" value="${esc(s ? s.pin : '')}">
       <label>시급</label><input id="fW" type="number" value="${s ? s.wage : 10320}">
       <label>색상</label><input id="fC" type="color" value="${col}" style="height:44px">
+      <label><input id="fB" type="checkbox" style="width:auto" ${!s || s.use_break !== 0 ? 'checked' : ''}> 휴게시간 사용</label>
+      <div class="muted" style="font-size:12px;margin:-2px 0 4px 22px">체크: 출근~퇴근 4시간 이상이면 30분(8시간 30분 이상이면 1시간)을 빼고 급여 계산<br>체크 해제: 휴게 없이 근무한 시간 전부를 급여로 계산</div>
       <label><input id="fA" type="checkbox" style="width:auto" ${!s || s.active ? 'checked' : ''}> 재직 중</label>`, '저장', () =>
-      ({ id: s ? s.id : null, name: $('#fN').value, pin: $('#fP').value, wage: +$('#fW').value, color: $('#fC').value, active: $('#fA').checked }));
+      ({ id: s ? s.id : null, name: $('#fN').value, pin: $('#fP').value, wage: +$('#fW').value, color: $('#fC').value, active: $('#fA').checked, use_break: $('#fB').checked }));
     if (!v) return;
     if (await run(() => api('/admin/staff', v))) { toast('저장했습니다'); renderAdmin(); }
   };
