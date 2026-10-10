@@ -55,7 +55,7 @@ button.warn{background:var(--warn);color:#fff}
 .owner{position:absolute;left:0;right:0;background:#efe9fb}
 .blk{position:absolute;border-radius:6px;font-size:10px;line-height:1.2;padding:2px 3px;overflow:hidden;cursor:default}
 .blk.plan{border:1.5px solid;background:transparent;z-index:2;padding:0}
-.blk.real{z-index:1;padding:0;border-left:3px solid}
+.blk.real{z-index:1;padding:0;border-left:3px solid;cursor:pointer}
 .blk.open{background-image:repeating-linear-gradient(45deg,rgba(255,255,255,.55) 0 5px,transparent 5px 10px)}
 .blk.missing{background:#fff!important;border:1.5px dashed var(--bad)!important}
 .blab{position:absolute;z-index:3;font-size:10px;line-height:1.2;padding:2px 3px;overflow:hidden;pointer-events:none;background:transparent}
@@ -299,7 +299,7 @@ function drawGrid(admin) {
           h += `<div class="blk plan" data-id="${it.id}" data-k="plan" style="top:${top}px;height:${hgt - 2}px;${pos}border-color:${st.color}"></div>`;
           lab += `<br><span style="color:${st.color}">${hhmm(it.start)}-${hhmm(it.end)}</span>`;
         } else {
-          h += `<div class="blk real ${it.status || ''}" style="top:${top}px;height:${hgt - 2}px;${pos}background-color:${st.color}40;border-left-color:${st.color}"></div>`;
+          h += `<div class="blk real ${it.status || ''}" data-pid="${it.id}" style="top:${top}px;height:${hgt - 2}px;${pos}background-color:${st.color}40;border-left-color:${st.color}"></div>`;
           lab += it.status === 'missing' ? `<br><span class="bad">▶${hhmm(it.start)} 퇴근누락</span>`
             : it.status === 'open' ? `<br><span class="r">▶${hhmm(it.start)}~ 근무중</span>`
             : `<br><span class="r">▶${hhmm(it.start)}-${hhmm(it.end)}</span>`;
@@ -317,8 +317,44 @@ function drawGrid(admin) {
   $('#legend').innerHTML = shown.map(s => `<span><i style="background:${s.color}"></i>${esc(s.name)}</span>`).join('')
     + `<span><i style="border:1.5px solid #777;background:#fff"></i>예정</span><span><i style="background:#7777;border-left:3px solid #555"></i>▶실제</span>`
     + (MODE === 'plan' ? `<span><i style="background:var(--gap)"></i>빈 시간</span><span><i style="background:#efe9fb"></i>사장님</span>` : '');
-  if (admin && MODE === 'plan') $('#grid').onclick = e => { const b = e.target.closest('.blk[data-k="plan"]'); if (b) editSchedule(DATA.schedules.find(s => s.id === +b.dataset.id)); };
-  else $('#grid').onclick = null;
+  $('#grid').onclick = e => {
+    // 누른 자리 아래에 실제 근무 막대가 있으면 상세 팝업 (예정 상자 밑에 깔려 있어도 찾음)
+    const under = document.elementsFromPoint(e.clientX, e.clientY);
+    const rb = under.find(el => el.matches && el.matches('.blk.real'));
+    if (rb) return showPunch(+rb.dataset.pid, admin);
+    const pb = under.find(el => el.matches && el.matches('.blk[data-k="plan"]'));
+    if (pb && admin && MODE === 'plan') editSchedule(DATA.schedules.find(s => s.id === +pb.dataset.id));
+  };
+}
+
+// 실제 근무 상세 팝업
+function showPunch(pid, admin) {
+  const p = DATA.punches.find(x => x.id === pid); if (!p) return;
+  const st = DATA.staff.find(s => s.id === p.staff_id) || { name: '?', color: '#888' };
+  const now = Date.now(), end = p.end || (p.status === 'open' ? now : null);
+  const plans = DATA.schedules.filter(s => s.staff_id === p.staff_id && s.start < (end || p.start + HOUR) + HOUR && s.end > p.start - HOUR);
+  const mins = end ? Math.round((end - p.start) / MIN) : null;
+  const state = p.status === 'open' ? '<span class="badge ok">근무중</span>' : p.status === 'missing' ? '<span class="badge bad">퇴근누락</span>' : endBadge(p);
+  const row = (k, v) => `<tr><td class="muted" style="padding:7px 10px 7px 0;white-space:nowrap">${k}</td><td style="padding:7px 0">${v}</td></tr>`;
+  const html = `<div style="display:flex;align-items:center;gap:8px"><i style="width:14px;height:14px;border-radius:4px;background:${st.color};display:inline-block"></i><span class="big" style="font-size:22px">${esc(st.name)}</span></div>
+    <div class="muted" style="margin:2px 0 8px">${mdw(p.start)}</div>
+    <table style="width:100%;border-collapse:collapse;font-size:15px">
+      ${row('예정', plans.length ? plans.map(s => `${hhmm(s.start)} ~ ${hhmm(s.end)}`).join('<br>') : '<span class="muted">예정 없음</span>')}
+      ${row('실제', `<b>${hhmm(p.start)} ~ ${p.status === 'open' ? '' : p.status === 'missing' ? '?' : hhmm(p.end)}</b> ${state}`)}
+      ${row('근무시간', mins != null ? `<b>${fmtH(mins)}</b>${p.status === 'open' ? ' <span class="muted">(지금까지)</span>' : ''}` : '<span class="muted">퇴근 기록 없음</span>')}
+    </table>
+    ${admin ? `<div style="display:flex;gap:6px;margin-top:12px;flex-wrap:wrap">
+      <button class="sm" id="ppEdit">기록 수정</button>${plans.length ? '<button class="sm" id="ppPlan">스케줄 수정</button>' : ''}</div>` : ''}`;
+  modal(html, '닫기', undefined, null);
+  const box = [...document.querySelectorAll('.mbg')].pop();
+  const close = () => box.remove();
+  const ed = box.querySelector('#ppEdit'); if (ed) ed.onclick = () => { close(); editPunchFromWeek(p); };
+  const pl = box.querySelector('#ppPlan'); if (pl) pl.onclick = () => { close(); editSchedule(plans[0]); };
+  box.onclick = e => { if (e.target === box) close(); }; // 바깥 누르면 닫기
+}
+async function editPunchFromWeek(p) {
+  if (!STAFF.length) STAFF = await run(() => api('/admin/staff')) || [];
+  await editPunch(p, true);
 }
 
 // ===== 직원 화면 =====
@@ -687,7 +723,7 @@ async function tabPunch() {
     if (await run(() => api('/admin/punch/delete', { id: p.id }))) { toast('삭제했습니다'); tabPunch(); }
   });
 }
-async function editPunch(p) {
+async function editPunch(p, fromWeek) {
   const v = await modal(`<h3>${p ? '기록 수정' : '기록 추가'}</h3><label>직원</label><select id="kS">${staffOpts(p && p.staff_id)}</select>
     <label>날짜</label><input type="date" id="kD" value="${ymd(p ? p.start : Date.now())}">
     <div class="row"><div><label>출근</label><input type="time" id="kA" value="${p ? hhmm(p.start) : ''}"></div><div><label>퇴근</label><input type="time" id="kB" value="${p && p.end ? hhmm(p.end) : ''}"></div></div>`, '저장', () => {
@@ -696,7 +732,7 @@ async function editPunch(p) {
       return { id: p ? p.id : null, staff_id: +$('#kS').value, start: toMs(d, a), end: toMs(d, b) };
     });
   if (!v) return;
-  if (await run(() => api('/admin/punch', v))) { toast('저장했습니다'); tabPunch(); }
+  if (await run(() => api('/admin/punch', v))) { toast('저장했습니다'); if (fromWeek) { clearWeekCache(); loadWeek(true); } else tabPunch(); }
 }
 
 function tabReq(reqs) {
