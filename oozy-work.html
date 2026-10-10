@@ -99,10 +99,30 @@ button.warn{background:var(--warn);color:#fff}
 .hcirc.sm{min-width:0;height:18px;padding:0 7px;font-size:11px;font-weight:600}
 .scroll-x{overflow-x:auto}
 #print{display:none}
-@media print{body>*:not(#print){display:none!important}#print{display:block;padding:20px;font-size:14px}#print table{width:100%;border-collapse:collapse}#print td,#print th{border:1px solid #999;padding:6px}}
+/* 연습 모드 */
+#pbanner{display:none;position:sticky;top:0;z-index:40;background:#ff8f00;color:#fff;text-align:center;font-size:13px;font-weight:700;padding:6px 8px}
+body.practice #pbanner{display:block}
+body.practice{background:#fff4e0}
+.practbox{margin-top:22px;border-top:1px solid var(--line);padding-top:16px}
+.practbox .hint{background:#fff;border:2px dashed #ff8f00;border-radius:12px;padding:10px 12px;font-size:14px;line-height:1.7;text-align:left;margin:10px 0}
+/* 명세서 화면 보기 */
+.slipbg{position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:55;overflow:auto;padding:16px 10px 40px}
+.slipbar{max-width:720px;margin:0 auto 10px;display:flex;gap:8px;justify-content:flex-end;position:sticky;top:0}
+.slip{max-width:720px;margin:0 auto;background:#fff;border-radius:10px;padding:22px 18px;font-size:14px;color:#222;box-shadow:0 4px 20px rgba(0,0,0,.2)}
+.slip h2{text-align:center;margin:0 0 14px;letter-spacing:4px}
+.slip h3{font-size:15px;margin:18px 0 6px}
+.slip .meta{display:flex;flex-wrap:wrap;gap:4px 16px;margin-bottom:10px}
+.slip table{width:100%;border-collapse:collapse}
+.slip td,.slip th{border:1px solid #999;padding:6px 4px;text-align:center;font-size:13px;word-break:keep-all}
+.slip th{background:#f1eeea}
+.slip .tot td,.slip .tot th{font-size:15px;font-weight:700;background:#fff7e8}
+.stamp{display:inline-block;padding:3px 12px;border-radius:99px;font-size:13px;font-weight:700}
+.stamp.ok{background:#dcf3e5;color:var(--ok)}.stamp.wip{background:#fff1d6;color:#9a5c00}
+@media print{body>*:not(#print){display:none!important}#print{display:block}#print .slip{box-shadow:none;border-radius:0;max-width:none;padding:10px}}
 </style>
 </head>
 <body>
+<div id="pbanner">연습 모드 · 실제 기록과 급여에는 전혀 반영되지 않습니다</div>
 <div id="app"></div>
 <div id="toast"></div>
 <div id="print"></div>
@@ -118,7 +138,7 @@ const CFG = {
 };
 const DAY = 864e5, HOUR = 36e5, MIN = 6e4;
 const DOW = ['일','월','화','수','목','금','토'];
-let PIN = '', ME = null, WEEK = monday(new Date()), MODE = 'plan', DATA = null, TAB = 'grid', idleT = null;
+let PRACTICE = false, PIN = '', ME = null, WEEK = monday(new Date()), MODE = 'plan', DATA = null, TAB = 'grid', idleT = null;
 
 // ===== 유틸 =====
 const $ = s => document.querySelector(s);
@@ -138,7 +158,7 @@ function toast(msg, ms = 2600) { const t = $('#toast'); t.textContent = msg; t.s
 async function api(path, body) {
   const r = await fetch(CFG.API + path, {
     method: body ? 'POST' : 'GET',
-    headers: { 'Content-Type': 'application/json', 'X-Pin': PIN },
+    headers: { 'Content-Type': 'application/json', 'X-Pin': PIN, ...(PRACTICE ? { 'X-Practice': '1' } : {}) },
     body: body ? JSON.stringify(body) : undefined
   });
   const j = await r.json().catch(() => ({ error: '서버 응답을 읽을 수 없습니다.' }));
@@ -191,11 +211,20 @@ function logout() {
   if (TPL_DIRTY && ME && ME.role === 'admin' && !confirm('근무표에 저장하지 않은 변경이 있습니다. 그래도 로그아웃할까요?')) return resetIdle();
   PIN = ''; ME = null; DATA = null; TPL = null; TPL_DIRTY = false; BRUSH = null; TAB = 'grid'; showLogin();
 }
+function setPractice(on) {
+  PRACTICE = on; document.body.classList.toggle('practice', on); clearWeekCache(); TPL = null; TPL_DIRTY = false;
+}
 function showLogin() {
   let v = '';
-  $('#app').innerHTML = `<div class="login"><div class="big">☕ 우지커피 근무관리</div><div class="muted" style="margin-top:6px">PIN 번호를 입력하세요</div>
+  $('#app').innerHTML = `<div class="login"><div class="big">☕ 우지커피 근무관리</div>
+    ${PRACTICE ? '<div style="margin-top:6px"><span class="stamp wip" style="background:#ff8f00;color:#fff">연습 모드</span></div>' : ''}
+    <div class="muted" style="margin-top:6px">PIN 번호를 입력하세요</div>
     <div class="dots" id="dots"></div>
-    <div class="pad">${[1,2,3,4,5,6,7,8,9].map(n => `<button data-n="${n}">${n}</button>`).join('')}<button data-n="del">⌫</button><button data-n="0">0</button><button data-n="go" class="pri">확인</button></div></div>`;
+    <div class="pad">${[1,2,3,4,5,6,7,8,9].map(n => `<button data-n="${n}">${n}</button>`).join('')}<button data-n="del">⌫</button><button data-n="0">0</button><button data-n="go" class="pri">확인</button></div>
+    <div class="practbox">${PRACTICE ? `
+      <div class="hint"><b>연습용 PIN</b><br>👤 사장님: <b>0000</b><br>🧑 연습A: <b>1111</b> — 지금 근무 시작 (정시 출근 연습)<br>🧑 연습B: <b>2222</b> — 20분 뒤 시작 (일찍 출근 연습)<br>🧑 연습C: <b>3333</b> — 오늘 예정 없음 (연장근무로 퇴근 연습)</div>
+      <div style="display:flex;gap:8px"><button class="sm" id="pReset" style="flex:1">연습 처음부터 다시</button><button class="sm pri" id="pExit" style="flex:1">연습 끝내기</button></div>`
+      : `<button id="pStart" style="width:100%;background:#fff3e0;color:#b25e00;border:2px dashed #ff8f00">🎓 연습하기 <span style="font-size:12px;font-weight:400">(실제 기록에 영향 없음)</span></button>`}</div></div>`;
   const dots = () => $('#dots').innerHTML = '<i></i>'.repeat(v.length);
   $('.pad').onclick = async e => {
     const n = e.target.dataset.n; if (!n) return;
@@ -203,6 +232,12 @@ function showLogin() {
     else if (n === 'go') { if (v.length < 4) return toast('4자리 이상 입력하세요'); await login(v); v = ''; }
     else if (v.length < 8) v += n;
     dots();
+  };
+  const ps = $('#pStart'); if (ps) ps.onclick = () => { setPractice(true); showLogin(); toast('연습 모드입니다. 아래 연습용 PIN으로 들어가 보세요', 3500); };
+  const px = $('#pExit'); if (px) px.onclick = () => { setPractice(false); showLogin(); toast('연습을 끝냈습니다'); };
+  const pr = $('#pReset'); if (pr) pr.onclick = async () => {
+    if (!await modal('<h3>연습 처음부터 다시</h3>연습에서 찍은 출퇴근·근무표·급여 확정을 모두 지우고, 연습용 기본 데이터로 되돌립니다.<br><span class="muted">실제 기록은 그대로입니다.</span>', '다시 시작')) return;
+    if (await run(() => api('/practice/reset', {}))) toast('연습 데이터를 처음 상태로 되돌렸습니다');
   };
 }
 async function login(v) {
@@ -375,12 +410,43 @@ async function renderStaff() {
         ${p.status === 'open' ? '<span class="badge ok">근무중</span>' : p.status === 'missing' ? '<span class="badge bad">퇴근누락</span>' : p.end ? `<span class="muted">${fmtH(Math.round((p.end - p.start) / MIN))}</span>` : ''}
         ${endBadge(p)}${p.edited ? '<span class="badge">수정됨</span>' : ''}</span>
         ${p.status !== 'open' ? `<button class="sm" data-rq="${p.id}">수정 요청</button>` : ''}</div>`).join('') || '<div class="muted">기록이 없습니다.</div>'}</div></div>
+    <div class="card" id="myPay"><div class="row" style="align-items:center"><b>급여 명세서</b><button class="sm pri" id="myConf" style="flex:0 0 auto">확정급여</button></div>
+      <div id="myPayBody" class="muted" style="margin-top:8px">불러오는 중...</div></div>
   </div>`;
   $('#out').onclick = logout;
   document.querySelectorAll('[data-act]').forEach(b => b.onclick = () => b.dataset.act === 'in' ? punchIn() : leave(b.dataset.act, open || st.last));
   $('#addrq').onclick = () => requestEdit(null);
   document.querySelectorAll('[data-rq]').forEach(b => b.onclick = () => requestEdit(st.recent.find(p => p.id === +b.dataset.rq)));
   bindGrid(false, wk);
+  $('#myConf').onclick = showMyConfirmed;
+  loadMyPay(ymd(Date.now()).slice(0, 7));
+}
+// 알바: 이번 달 현재까지 급여
+async function loadMyPay(month) {
+  const r = await run(() => api('/my/pay?month=' + month)); if (!r || !$('#myPayBody')) return;
+  const s = r.slip, [y, m] = month.split('-').map(Number);
+  const prev = ymd(new Date(y, m - 2, 1)).slice(0, 7), next = ymd(new Date(y, m, 1)).slice(0, 7), cur = ymd(Date.now()).slice(0, 7);
+  $('#myPayBody').classList.remove('muted');
+  $('#myPayBody').innerHTML = `<div class="row" style="align-items:center;margin-bottom:6px"><button class="sm" id="mpPrev" style="flex:0 0 auto">◀</button>
+      <b style="text-align:center">${y}년 ${m}월 <span class="stamp wip" style="font-size:11px">${month === cur ? '현재까지' : '확정 전 계산'}</span></b>
+      <button class="sm" id="mpNext" style="flex:0 0 auto" ${month >= cur ? 'disabled' : ''}>▶</button></div>
+    <table class="pay"><tr><th>근무일</th><th>총 시간</th><th>유급 시간</th><th>급여</th></tr>
+    <tr><td>${s.days}일</td><td>${fmtH(s.total)}</td><td>${fmtH(s.paid)}</td><td><b>${won(s.pay)}</b></td></tr></table>
+    ${s.unresolved ? `<div class="warnlist" style="background:#fde3e3">퇴근누락 기록 ${s.unresolved}건은 빠져 있습니다. 수정 요청을 보내주세요.</div>` : ''}
+    <div class="row" style="margin-top:8px"><button class="sm" id="mpView">자세히 보기</button></div>
+    <div class="muted" style="margin-top:6px;font-size:12px">이 금액은 지금까지의 기록으로 계산한 것입니다. 실제 지급액은 사장님이 확정한 <b>확정급여</b>를 확인하세요.</div>`;
+  $('#mpPrev').onclick = () => loadMyPay(prev);
+  $('#mpNext').onclick = () => loadMyPay(next);
+  $('#mpView').onclick = () => showSlip(s, month, `<span class="stamp wip">확정 전 · ${month === cur ? '현재까지' : '계산값'}</span>`);
+}
+// 알바: 사장님이 확정한 명세서
+async function showMyConfirmed() {
+  const list = await run(() => api('/my/payslips')); if (!list) return;
+  if (!list.length) return modal('<h3>확정급여</h3>아직 확정된 급여명세서가 없습니다.<br><span class="muted">사장님이 급여를 확정하면 여기에서 볼 수 있습니다.</span>', '닫기', undefined, null);
+  modal(`<h3>확정급여</h3><div class="list">${list.map((r, i) => `<div><span><b>${+r.month.slice(0, 4)}년 ${+r.month.slice(5)}월</b><br><span class="muted">확정 ${ymd(r.at)}</span></span>
+      <span style="display:flex;align-items:center;gap:8px"><b>${won(r.slip.pay || 0)}</b><button class="sm pri" data-ms="${i}">보기</button></span></div>`).join('')}</div>`, '닫기', undefined, null);
+  const box = [...document.querySelectorAll('.mbg')].pop();
+  box.querySelectorAll('[data-ms]').forEach(b => b.onclick = () => { const r = list[+b.dataset.ms]; box.remove(); showSlip(r.slip, r.month, `<span class="stamp ok">확정 ${ymd(r.at)}</span>`); });
 }
 const END_LABEL = { auto: '예정 퇴근', normal: '정시', early: '조기퇴근', extra: '연장' };
 const endBadge = p => p.end_type ? `<span class="badge ${p.end_type === 'extra' ? 'warn' : p.end_type === 'early' ? 'bad' : ''}">${END_LABEL[p.end_type]}</span>` : '';
@@ -409,7 +475,7 @@ async function punchIn() {
   toast('위치 확인 중...');
   const pos = await getPos();
   const r = await run(() => withConfirm('/punch/in', pos));
-  if (r && r.ok) { toast(`출근 완료 · ${hhmm(r.at)}부터 기록${r.at !== r.raw ? ` (누른 시각 ${hhmm(r.raw)})` : ''}`, 4000); renderStaff(); }
+  if (r && r.ok) { toast(`출근 완료 · ${hhmm(r.at)}부터 기록${hhmm(r.at) !== hhmm(r.raw) ? ` (누른 시각 ${hhmm(r.raw)})` : ''}`, 4000); renderStaff(); }
 }
 async function leave(type, row) {
   const now = hhmm(Date.now()), pe = row && row.plan_end ? hhmm(row.plan_end) : null;
@@ -751,29 +817,74 @@ async function tabPay() {
   $('#pgo').onclick = () => { PAYMONTH = $('#pm').value; tabPay(); };
   PAY = await run(() => api('/admin/pay?month=' + PAYMONTH)); if (!PAY) return;
   const sum = PAY.staff.reduce((a, s) => a + s.pay, 0);
-  $('#paybody').innerHTML = `<div class="card"><b>${PAY.month} 인건비 합계: ${won(sum)}</b><div class="muted">휴게시간 자동 차감: 4시간 이상 30분, 8시간 이상 1시간</div></div>` +
+  const confAt = PAY.staff.map(s => s.confirmedAt).filter(Boolean).sort().pop();
+  const unres = PAY.staff.reduce((a, s) => a + s.unresolved, 0);
+  $('#paybody').innerHTML = `<div class="card"><b>${PAY.month} 인건비 합계: ${won(sum)}</b><div class="muted">휴게시간 자동 차감: 4시간 이상 30분, 8시간 이상 1시간</div>
+      <div style="margin-top:10px;display:flex;gap:6px;flex-wrap:wrap;align-items:center">
+        ${confAt ? `<span class="stamp ok">확정됨 ${mdw(confAt)} ${hhmm(confAt)}</span>` : '<span class="stamp wip">확정 전</span>'}
+        <span style="flex:1"></span>
+        <button class="sm pri" id="pConfirm">${confAt ? '다시 확정 (변경 반영)' : '급여 확정'}</button>
+        ${confAt ? '<button class="sm" id="pKakao">카톡 안내문</button><button class="sm" id="pUnconf">확정 취소</button>' : ''}
+      </div>
+      <div class="muted" style="margin-top:6px">확정하면 알바가 자기 PIN으로 로그인해 <b>확정급여</b>에서 본인 명세서만 볼 수 있습니다.</div></div>` +
     PAY.staff.map(s => `<div class="card" style="border-left:5px solid ${s.color}">
-      <div class="row" style="align-items:center"><div><b style="font-size:17px">${esc(s.name)}</b> <span class="muted">시급 ${won(s.wage)}</span></div><button class="sm" data-slip="${s.id}" style="flex:0 0 auto">명세서</button></div>
+      <div class="row" style="align-items:center"><div><b style="font-size:17px">${esc(s.name)}</b> <span class="muted">시급 ${won(s.wage)}</span>${s.confirmedAt ? ' <span class="badge ok">확정</span>' : ''}</div><button class="sm" data-slip="${s.id}" style="flex:0 0 auto">명세서</button></div>
       <table class="pay" style="margin-top:6px"><tr><th>근무일</th><th>총 시간</th><th>휴게</th><th>유급 시간</th><th>급여</th></tr>
       <tr><td>${s.days}일</td><td>${fmtH(s.total)}</td><td>${fmtH(s.brk)}</td><td>${fmtH(s.paid)}</td><td><b>${won(s.pay)}</b></td></tr></table>
       ${s.unresolved ? `<div class="warnlist" style="background:#fde3e3">⚠ 퇴근누락/근무중 기록 ${s.unresolved}건이 계산에서 빠졌습니다. 기록 탭에서 정리하세요.</div>` : ''}
       ${s.overWeeks.length ? `<div class="warnlist">⚠ 주 15시간 이상인 주: ${s.overWeeks.map(w => `${mdw(w.week)}주 ${fmtH(w.minutes)}`).join(', ')}<br><span class="muted">주휴수당 대상입니다. 위 금액에 포함되지 않았습니다.</span></div>` : ''}
     </div>`).join('');
-  document.querySelectorAll('[data-slip]').forEach(b => b.onclick = () => printSlip(PAY.staff.find(s => s.id === +b.dataset.slip)));
+  document.querySelectorAll('[data-slip]').forEach(b => b.onclick = () => { const s = PAY.staff.find(x => x.id === +b.dataset.slip); showSlip(s, PAY.month, s.confirmedAt ? `<span class="stamp ok">확정 ${ymd(s.confirmedAt)}</span>` : '<span class="stamp wip">확정 전</span>'); });
+  $('#pConfirm').onclick = async () => {
+    const ok = await modal(`<h3>${PAY.month} 급여 확정</h3>지금 계산된 금액으로 명세서를 확정합니다. 알바는 자기 화면의 <b>확정급여</b>에서 본인 것만 볼 수 있습니다.
+      ${unres ? `<div class="warnlist" style="background:#fde3e3">⚠ 퇴근누락/근무중 기록 ${unres}건이 빠져 있습니다. 먼저 정리하는 것이 좋습니다.</div>` : ''}
+      <div class="muted" style="margin-top:6px">나중에 기록을 고치면 '다시 확정'을 눌러야 알바 화면에 반영됩니다.</div>`, '확정');
+    if (!ok) return;
+    const r = await run(() => api('/admin/pay/confirm', { month: PAY.month }));
+    if (r) { toast(`${r.count}명 명세서를 확정했습니다`); await tabPay(); kakaoNotice(); }
+  };
+  const kk = $('#pKakao'); if (kk) kk.onclick = kakaoNotice;
+  const uc = $('#pUnconf'); if (uc) uc.onclick = async () => {
+    if (!await modal(`<h3>확정 취소</h3>${PAY.month} 확정 명세서를 지웁니다. 알바 화면의 확정급여에서도 사라집니다.`, '확정 취소')) return;
+    if (await run(() => api('/admin/pay/unconfirm', { month: PAY.month }))) { toast('확정을 취소했습니다'); tabPay(); }
+  };
 }
-function printSlip(s) {
-  $('#print').innerHTML = `<h2 style="text-align:center">임금명세서</h2>
-    <p>사업장: 우지커피 광양용강점 &nbsp;&nbsp; 지급월: ${PAY.month} &nbsp;&nbsp; 성명: <b>${esc(s.name)}</b></p>
+// 카톡방에 붙여넣을 안내문 (명세서 내용은 넣지 않음 — 각자 PIN으로 확인)
+async function kakaoNotice() {
+  const url = location.href.split('#')[0].split('?')[0];
+  const mo = +PAY.month.slice(5);
+  const text = `[우지커피] ${mo}월 급여명세서가 확정되었습니다.\n아래 링크에서 본인 PIN으로 로그인 → 맨 아래 '확정급여'를 눌러 확인해 주세요.\n(본인 명세서만 보입니다)\n${url}`;
+  const v = await modal(`<h3>카톡방 안내문</h3><textarea id="kText" style="width:100%;height:130px;padding:10px;border:1px solid var(--line);border-radius:10px;font:inherit">${esc(text)}</textarea>
+    <div class="muted">아래 버튼으로 복사하거나 바로 공유한 뒤 알바 카톡방에 붙여넣으세요.</div>`, navigator.share ? '공유하기' : '복사하기', () => $('#kText').value, '닫기');
+  if (!v) return;
+  if (navigator.share) { try { await navigator.share({ text: v }); return; } catch (e) { } }
+  try { await navigator.clipboard.writeText(v); toast('복사했습니다. 카톡방에 붙여넣으세요'); }
+  catch (e) { toast('복사하지 못했습니다. 글을 길게 눌러 직접 복사해 주세요'); }
+}
+function slipHTML(s, month, label) {
+  return `<div class="slip"><h2>임금명세서</h2>
+    ${label ? `<div style="text-align:center;margin:-8px 0 12px">${label}</div>` : ''}
+    <div class="meta"><span>사업장: <b>우지커피 광양용강점</b></span><span>지급월: <b>${month}</b></span><span>성명: <b>${esc(s.name)}</b></span></div>
     <table><tr><th>근로일수</th><th>총 근로시간</th><th>휴게시간</th><th>유급 근로시간</th><th>시급</th></tr>
     <tr><td>${s.days}일</td><td>${fmtH(s.total)}</td><td>${fmtH(s.brk)}</td><td>${fmtH(s.paid)}</td><td>${won(s.wage)}</td></tr></table>
     <h3>지급 내역</h3><table><tr><th>항목</th><th>계산 방법</th><th>금액</th></tr>
     <tr><td>기본급</td><td>${(s.paid / 60).toFixed(2)}시간 × ${won(s.wage)}</td><td>${won(s.pay)}</td></tr>
-    <tr><td>공제</td><td></td><td></td></tr>
-    <tr><th colspan="2">실 지급액</th><th></th></tr></table>
-    <h3>근무 내역</h3><table><tr><th>날짜</th><th>출근</th><th>퇴근</th><th>근무</th><th>휴게</th></tr>
-    ${s.shifts.map(x => `<tr><td>${mdw(x.start)}</td><td>${hhmm(x.start)}</td><td>${hhmm(x.end)}</td><td>${fmtH(x.min)}</td><td>${x.brk ? x.brk + '분' : '-'}</td></tr>`).join('')}</table>
-    <p style="margin-top:30px;text-align:right">발행일: ${ymd(Date.now())}</p>`;
-  window.print();
+    <tr><td>공제</td><td>-</td><td>0원</td></tr>
+    <tr class="tot"><th colspan="2">실 지급액</th><td>${won(s.pay)}</td></tr></table>
+    <h3>근무 내역 (${s.shifts.length}회)</h3><table><tr><th>날짜</th><th>출근</th><th>퇴근</th><th>근무</th><th>휴게</th></tr>
+    ${s.shifts.map(x => `<tr><td>${mdw(x.start)}</td><td>${hhmm(x.start)}</td><td>${hhmm(x.end)}</td><td>${fmtH(x.min)}</td><td>${x.brk ? x.brk + '분' : '-'}</td></tr>`).join('') || '<tr><td colspan="5">근무 기록이 없습니다</td></tr>'}</table>
+    ${s.unresolved ? `<p style="color:#d32f2f;margin-top:10px">※ 퇴근누락·근무중 기록 ${s.unresolved}건은 포함되지 않았습니다.</p>` : ''}
+    <p style="margin-top:24px;text-align:right">발행일: ${ymd(Date.now())}</p></div>`;
+}
+// 명세서를 화면에 띄우고, 필요하면 인쇄·PDF 저장
+function showSlip(s, month, label) {
+  const bg = document.createElement('div'); bg.className = 'slipbg';
+  bg.innerHTML = `<div class="slipbar"><button class="sm" id="slPrint">인쇄 / PDF 저장</button><button class="sm pri" id="slClose">닫기</button></div>${slipHTML(s, month, label)}`;
+  document.body.appendChild(bg);
+  const close = () => bg.remove();
+  bg.querySelector('#slClose').onclick = close;
+  bg.onclick = e => { if (e.target === bg) close(); };
+  bg.querySelector('#slPrint').onclick = () => { $('#print').innerHTML = slipHTML(s, month, label); window.print(); };
 }
 
 async function tabStaff() {
