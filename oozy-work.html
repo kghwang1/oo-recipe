@@ -44,11 +44,11 @@ button.warn{background:var(--warn);color:#fff}
 .pad button.pri{background:var(--brand);color:#fff;font-size:20px}
 /* 주간표 */
 .gridhead{display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap}
-.grid{display:grid;grid-template-columns:34px repeat(7,minmax(0,1fr));overflow:hidden;margin-top:8px;min-width:0;padding-bottom:8px}
+.grid{display:grid;grid-template-columns:42px repeat(7,minmax(0,1fr));overflow:hidden;margin-top:8px;min-width:0;padding-bottom:8px}
 .gcol{position:relative;border-left:1px solid var(--line)}
 .ghead{text-align:center;font-size:12px;padding:4px 0;border-bottom:1px solid var(--line);height:34px}
 .ghead.today{color:#fff;background:var(--brand);border-radius:8px 8px 0 0}
-.tlabel{position:absolute;right:4px;font-size:11px;color:var(--sub);transform:translateY(-6px)}
+.tlabel{position:absolute;right:3px;font-size:11px;color:var(--sub);transform:translateY(-50%);letter-spacing:-.3px;white-space:nowrap;font-variant-numeric:tabular-nums}
 .hline{position:absolute;left:0;right:0;border-top:1px dashed #eee}
 .closed{position:absolute;left:0;right:0;background:repeating-linear-gradient(45deg,#f1eeea,#f1eeea 4px,#e9e4de 4px,#e9e4de 8px)}
 .gapz{position:absolute;left:0;right:0;background:var(--gap)}
@@ -77,7 +77,7 @@ button.warn{background:var(--warn);color:#fff}
 .pal{position:sticky;top:0;z-index:5;background:#fff;padding:8px 0 10px;display:flex;gap:6px;flex-wrap:wrap;border-bottom:1px solid var(--line);margin-bottom:8px}
 .pal button{padding:7px 11px;font-size:13px;border:2px solid transparent}
 .pal button.on{border-color:var(--ink);box-shadow:0 0 0 2px #fff inset}
-.tgrid{display:grid;grid-template-columns:40px repeat(7,minmax(0,1fr));gap:2px;user-select:none;-webkit-user-select:none}
+.tgrid{display:grid;grid-template-columns:44px repeat(7,minmax(0,1fr));gap:2px;user-select:none;-webkit-user-select:none}
 .tgrid.paint{touch-action:none}
 .tgrid .th{font-size:12px;text-align:center;padding:5px 0;background:#404040;color:#fff;border-radius:6px}
 .tgrid .tt{font-size:11px;color:var(--sub);display:flex;align-items:center;justify-content:flex-end;padding-right:3px}
@@ -332,7 +332,7 @@ function drawGrid(admin) {
     : mine ? plan.concat(real).filter(x => x.staff_id === mine) : real;
   const H = (CFG.H1 - CFG.H0) * CFG.PX, y = t => (t - CFG.H0) * CFG.PX;
   let h = `<div><div class="ghead"></div><div style="position:relative;height:${H}px">`;
-  for (let i = CFG.H0; i <= CFG.H1; i++) h += `<div class="tlabel" style="top:${y(i)}px">${i}</div>`;
+  for (let i = CFG.H0; i < CFG.H1; i++) h += `<div class="tlabel" style="top:${y(i) + CFG.PX / 2}px">${pad(i)}~${pad(i + 1)}</div>`; // 칸 가운데에 07~08
   h += `</div></div>`;
   const todayMs = new Date().setHours(0, 0, 0, 0);
   for (let d = 0; d < 7; d++) {
@@ -642,7 +642,7 @@ async function tabTpl() {
   let g = `<div></div>${TDAYS.map(d => `<div class="th" data-d="${TDAYS.indexOf(d)}">${d}</div>`).join('')}`;
   for (let h = H0; h < H1; h++) {
     const alt = (h - H0) % 2 ? ' alt' : '';
-    g += `<div class="tt${alt}" data-h="${h}">${pad(h)}:00</div>`;
+    g += `<div class="tt${alt}" data-h="${h}">${pad(h)}~${pad(h + 1)}</div>`;
     for (let d = 0; d < 7; d++) g += isOff(d, h) ? `<div class="tc off"></div>` : `<div class="tc${alt}" data-k="${d}-${h}"></div>`;
   }
   $('#body').innerHTML = `<div class="card">
